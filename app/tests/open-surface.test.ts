@@ -48,6 +48,8 @@ test("outside /api: the voice files need a session, the shell carries no data, h
   expect(links.status).toBe(200);
   expect((await links.json())[0].target.package_name).toBe("dev.kaleve.peppermint");
   expect((await fetch(BASE + "/@nobody")).status).toBe(404);
+  expect((await fetch(BASE + "/@%E0%A4%A")).status).toBe(404);
+  expect((await fetch(BASE + "/api/stories/%E0%A4%A", { headers: { cookie: "" } })).status).toBeLessThan(500);
   // the share target only turns its form into a query string and sends the browser on
   const share = await fetch(BASE + "/share", { method: "POST", body: new URLSearchParams({ url: "https://example.com" }), redirect: "manual" });
   expect(share.status).toBe(303);

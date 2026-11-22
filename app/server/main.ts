@@ -832,7 +832,9 @@ const server = Bun.serve({
         // a paired phone reaches only the routes that name its scope (docs/android.md)
         const owner = reader ?? (r.scope && who?.kind === "device" && auth.accounts.can(who, r.scope) ? who.owner : null);
         if (!r.open && !owner) return err(401, "Sign in to continue.");
-        const params: Record<string, string> = {}; r.keys.forEach((k, i) => params[k] = decodeURIComponent(m[i + 1]));
+        // a stray % in the path is a bad request, not a crash
+        const params: Record<string, string> = {};
+        try { r.keys.forEach((k, i) => params[k] = decodeURIComponent(m[i + 1])); } catch { return err(400, "Bad link."); }
         try { return await r.h({ req, url, owner, params }); } catch (e) { console.error(e); return err(500, "Something broke on the server. It is logged."); }
       }
       return err(404, "No such endpoint.");

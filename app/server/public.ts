@@ -164,7 +164,9 @@ function count(id: number, col: "reads" | "finishes" | "shares") {
 /** Everything under /@, and nothing else answers there: Cloudflare Access lets /@* through without a login, so an
  *  unknown path is a 404 here, never the app. */
 export async function servePublic(req: Request, url: URL, origin: string, viewer: number | null): Promise<Response> {
-  const parts = url.pathname.slice(2).split("/").map(decodeURIComponent);
+  // a stray % from a stranger is an unknown page, not a crash
+  let parts: string[];
+  try { parts = url.pathname.slice(2).split("/").map(decodeURIComponent); } catch { return html(message("Nicht gefunden", "Diese Seite gibt es nicht.", null), 404); }
   if (parts[0] === "" && parts[1] === "pub.js") return new Response(PUB_JS, { headers: { "content-type": "text/javascript; charset=utf-8", "cache-control": "public, max-age=3600" } });
   const owner = ownerOf(parts[0] ?? "");
   if (!owner) return html(message("Nicht gefunden", "Diese Seite gibt es nicht.", null), 404);
