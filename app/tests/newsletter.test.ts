@@ -4,6 +4,7 @@ import { expect, test } from "bun:test";
 import { newsletterItems, newsletterText, newsletterToken } from "../server/connectors/newsletter";
 import { cleanFilter, filterFor } from "../server/filter";
 import type { Mail } from "../server/jmap";
+import { isDue } from "../server/pipeline";
 
 const HTML = `<html><head><title>x</title><style>.a{color:red}</style></head><body>
 <span style="display:none;max-height:0">Preheader you never see</span>
@@ -57,4 +58,14 @@ test("keyword filters: whole words, any accent or case, prefixes with *, none wi
   expect(filterFor(cleanFilter({}))({ title: "anything" })).toBe(true);
   expect(cleanFilter({ any: "PFAS, pfas\nRoHS, x", none: [" "] })).toEqual({ any: ["PFAS", "RoHS"], none: [] });
   expect(filterFor(cleanFilter({ any: ["Annex XVII"] }))({ title: "entry 79 of annex\nxvii" })).toBe(true); // phrases span any whitespace
+});
+
+test("a newsletter waiting for its first mail is checked every two minutes, then at its cadence", () => {
+  const at = 10_000_000, src = (kind: string, cursor: unknown, ago: number) => ({ kind, cadence_min: 30, last_pull_at: at - ago * 60_000, cursor: JSON.stringify(cursor) });
+  expect(isDue(src("mail", {}, 3), at)).toBe(true);
+  expect(isDue(src("mail", {}, 1), at)).toBe(false);
+  expect(isDue(src("mail", { since: 5 }, 3), at)).toBe(false);   // it has mail: every 30 min
+  expect(isDue(src("mail", { since: 5 }, 31), at)).toBe(true);
+  expect(isDue(src("feed", {}, 3), at)).toBe(false);
+  expect(isDue({ ...src("feed", {}, 0), last_pull_at: null }, at)).toBe(true);
 });

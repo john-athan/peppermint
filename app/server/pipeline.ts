@@ -105,12 +105,20 @@ export async function pullSource(src: SourceRow): Promise<{ added: number; error
   }
 }
 
+/** Whether a source should be pulled now. A newsletter that has not received any mail yet is checked every two
+ *  minutes instead of its cadence: right after you subscribe, its confirmation mail should show up while you wait. */
+export function isDue(s: { kind: string; cadence_min: number; last_pull_at: number | null; cursor: string }, at: number): boolean {
+  if (!s.last_pull_at) return true;
+  const waiting = s.kind === "mail" && !json<{ since?: number }>(s.cursor, {}).since;
+  return at - s.last_pull_at >= (waiting ? 2 : s.cadence_min) * 60_000;
+}
+
 export async function harvest(owner: number, { force = false, onEvent = (_: PullEvent) => {} } = {}) {
   const existing = running.get(owner);
   if (existing) { await existing; return { added: 0, joined: true }; }
   const p = (async () => {
     const sources = db.query("SELECT * FROM sources WHERE owner_id = ? AND enabled = 1").all(owner) as (SourceRow & { last_pull_at: number | null })[];
-    const due = sources.filter(s => CONNECTORS[s.kind]?.pull && (force || !s.last_pull_at || now() - s.last_pull_at >= s.cadence_min * 60_000));
+    const due = sources.filter(s => CONNECTORS[s.kind]?.pull && (force || isDue(s, now())));
     let added = 0;
     await Promise.all(due.map(async s => { const r = await pullSource(s); added += r.added; onEvent({ type: "source", id: s.id, name: s.name, added: r.added, error: r.error }); }));
     const pending = (db.query("SELECT count(*) AS n FROM items WHERE owner_id = ? AND tagged = 0").get(owner) as { n: number }).n;
