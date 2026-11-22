@@ -32,8 +32,9 @@ test("a confirmation mail yields its confirm link, in HTML and in plain text", (
 
 const mail = (id: string, subject: string, at: number, html: string | null = "<p>Hello</p>"): Mail => ({ token: "nl-abc", from: "news@mailer.echa.europa.eu", fromName: "ECHA", subject, html, text: "Hello", receivedAt: at, messageId: id, listUnsubscribe: "https://echa.example/u" });
 
-test("newsletterItems: one item per mail, each once; the confirm link waits until the first real issue", () => {
+test("newsletterItems: one item per mail, each once; a confirmation is no story, its link waits on the source until the first real issue", () => {
   const a = newsletterItems([mail("m1", "Confirm your subscription", 100, `<a href="https://echa.example/confirm?t=1">Confirm subscription</a>`)], {});
+  expect(a.items).toEqual([]);
   expect(a.cursor.confirm).toEqual({ url: "https://echa.example/confirm?t=1", subject: "Confirm your subscription", at: 100 });
   const b = newsletterItems([mail("m1", "Confirm your subscription", 100), mail("m2", "Fwd: ECHA Weekly", 200)], a.cursor);
   expect(b.items.map(i => i.title)).toEqual(["ECHA Weekly"]);

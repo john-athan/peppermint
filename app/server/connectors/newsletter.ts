@@ -3,8 +3,8 @@
 // of the mail the body, the "view in browser" link (when the mail has one) the link. One address per newsletter keeps
 // trust, palate and filters per newsletter, and lets you drop one by deleting its source.
 //
-// Many newsletters ask to confirm the subscription first. Such a mail comes in like any other, and its confirm link is
-// also kept on the source, so the Sources page can offer it even when the palate would never show that mail.
+// Many newsletters ask to confirm the subscription first. Such a mail never becomes a story: its confirm link is kept on
+// the source, and the Sources page offers it until the first regular issue arrives.
 import { jmapConfigured, mailTo, plusAddress, type Mail } from "../jmap";
 import type { Connector } from "./index";
 import { decode, type RawItem } from "./util";
@@ -70,8 +70,8 @@ export function newsletterItems(mails: Mail[], cursor: Cursor): { items: RawItem
     if (seen.has(m.messageId)) continue;
     seen.add(m.messageId);
     const t = newsletterText(m.html, m.text, m.subject);
-    if (t.confirm) confirm = { url: t.confirm, subject: m.subject.slice(0, 200), at: m.receivedAt };
-    else if (confirm && m.receivedAt > confirm.at) confirm = null; // a regular issue arrived: the subscription runs
+    if (t.confirm) { confirm = { url: t.confirm, subject: m.subject.slice(0, 200), at: m.receivedAt }; continue; }
+    if (confirm && m.receivedAt > confirm.at) confirm = null; // a regular issue arrived: the subscription runs
     const title = m.subject.replace(/^\s*((fwd?|wg|aw|re):\s*)+/i, "").trim() || "(no subject)";
     items.push({
       ext_id: m.messageId, url: t.view, title, author: m.fromName || m.from, lang: null,
