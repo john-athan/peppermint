@@ -79,3 +79,30 @@ test("a paired phone reaches the listening routes and nothing else", async () =>
   // the accounts module's own pages are for people, never for a device
   expect((await fetch(BASE + "/api/members", { headers: phone })).status).not.toBe(200);
 });
+
+test("a stranger cannot make the server read a big body: /@ and /share answer 413, a normal post still works", async () => {
+  const { setSetting } = await import("../server/db");
+  const owner = (db.query("INSERT INTO users (name, created_at) VALUES ('Writer', ?) RETURNING id").get(Date.now()) as { id: number }).id;
+  setSetting(owner, "profile", { name: "Writer", handle: "bodies", bio: "", imprint: "", email: "" });
+  const post = (path: string, init: RequestInit) => fetch(BASE + path, { method: "POST", redirect: "manual", ...init, headers: { origin: ORIGIN, ...(init.headers as object) } });
+  const big = JSON.stringify({ email: "a@example.org", pad: "x".repeat(200 * 1024) });
+  const json = { "content-type": "application/json" };
+
+  // a declared length over the limit is refused before the body is read
+  expect((await post("/@bodies/subscribe", { headers: json, body: big })).status).toBe(413);
+  expect((await post("/share", { headers: json, body: big })).status).toBe(413);
+
+  // no Content-Length: a chunked body is cut off by the byte count
+  const chunked = () => new ReadableStream({ start(c) { const chunk = new TextEncoder().encode("x".repeat(16 * 1024)); for (let i = 0; i < 8; i++) c.enqueue(chunk); c.close(); } });
+  for (const path of ["/@bodies/subscribe", "/share"]) {
+    const res = await post(path, { headers: { "content-type": "application/x-www-form-urlencoded" }, body: chunked(), duplex: "half" } as RequestInit);
+    expect(res.status).toBe(413);
+  }
+
+  // the server as a whole has a ceiling too, far below Bun's 128 MB default
+  expect((await post("/api/edition", { headers: json, body: new Uint8Array(20_000_000) })).status).toBe(413);
+
+  // normal sizes still work
+  expect((await post("/@bodies/subscribe", { headers: json, body: JSON.stringify({ email: "reader@example.org" }) })).status).toBe(200);
+  expect((await post("/share", { body: new URLSearchParams({ url: "https://example.com" }) })).status).toBe(303);
+});

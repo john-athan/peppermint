@@ -1,6 +1,7 @@
 import type { Card } from "../shared/types";
 import { backupIfDue, db, json, now, setting, setSetting } from "./db";
 import * as auth from "./auth";
+import { readFields } from "./body";
 import { CONNECTORS, isYouTubeFeed, kindForUrl } from "./connectors";
 import { searchPodcasts, searchYouTube } from "./connectors/creators";
 import { CADENCE, configFor, findPicks, NEW_KINDS } from "./connectors/more";
@@ -817,6 +818,9 @@ if (import.meta.main && process.argv.length > 2) {
 /* ---------- server ---------- */
 const server = Bun.serve({
   port: PORT, hostname: process.env.HOST ?? "0.0.0.0", idleTimeout: 120,
+  // The largest legitimate body is a new case: up to 4 photos, each capped at 4 MB in case-routes.ts, plus a note and
+  // a few fields. Bun's default is 128 MB, which a stranger could make us buffer on any route.
+  maxRequestBodySize: 4 * 4_000_000 + 1_000_000,
   async fetch(req, srv) {
     const url = new URL(req.url);
     if (url.pathname.startsWith("/api/")) {
@@ -846,8 +850,10 @@ const server = Bun.serve({
     }
     // the share sheet without a service worker yet (first visit): the link goes on, photos need the installed app
     if (url.pathname === "/share" && req.method === "POST") {
-      const f = await req.formData().catch(() => null); const q = new URLSearchParams();
-      for (const k of ["title", "text", "url"]) { const v = f?.get(k); if (typeof v === "string" && v) q.set(k, v.slice(0, 2000)); }
+      // no session needed: a title, text and url, never files (the installed app's service worker takes those)
+      let f: Record<string, any>; try { f = await readFields(req, 16 * 1024); } catch { return err(413, "Too large."); }
+      const q = new URLSearchParams();
+      for (const k of ["title", "text", "url"]) { const v = f[k]; if (typeof v === "string" && v) q.set(k, v.slice(0, 2000)); }
       return new Response(null, { status: 303, headers: { location: `/share?${q}` } });
     }
     // the writer's public page: open to anyone, outside the app

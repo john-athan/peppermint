@@ -5,6 +5,7 @@
 import { db, json, now } from "./db";
 import { profile, subscriberCount } from "./desk";
 import { send, validAddress } from "./mail";
+import { readFields, TooLarge } from "./body";
 import type { Block, DraftMeta, Profile } from "../shared/types";
 
 const esc = (s: string) => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
@@ -151,10 +152,10 @@ function limited(req: Request, key: string, max = 5) {
   if (hits.size > 5000) hits.clear();
   return false;
 }
-async function form(req: Request) {
-  const ct = req.headers.get("content-type") ?? "";
-  try { return ct.includes("json") ? await req.json() as any : Object.fromEntries(await req.formData()); } catch { return {}; }
-}
+// A subscribe, tip or beacon is a few hundred bytes (a tip is 3000 characters, so at most ~12 KB in UTF-8). Nothing a
+// stranger posts here gets more room than this.
+const MAX_FORM = 32 * 1024;
+const form = (req: Request) => readFields(req, MAX_FORM);
 const isBot = (req: Request) => /bot|crawl|spider|preview|fetch|curl|wget|slurp|facebookexternalhit/i.test(req.headers.get("user-agent") ?? "");
 function count(id: number, col: "reads" | "finishes" | "shares") {
   const day = new Date().toISOString().slice(0, 10);
@@ -164,6 +165,10 @@ function count(id: number, col: "reads" | "finishes" | "shares") {
 /** Everything under /@, and nothing else answers there: Cloudflare Access lets /@* through without a login, so an
  *  unknown path is a 404 here, never the app. */
 export async function servePublic(req: Request, url: URL, origin: string, viewer: number | null): Promise<Response> {
+  try { return await servePublicPage(req, url, origin, viewer); }
+  catch (e) { if (e instanceof TooLarge) return J({ message: "Too large." }, 413); throw e; }
+}
+async function servePublicPage(req: Request, url: URL, origin: string, viewer: number | null): Promise<Response> {
   // a stray % from a stranger is an unknown page, not a crash
   let parts: string[];
   try { parts = url.pathname.slice(2).split("/").map(decodeURIComponent); } catch { return html(message("Nicht gefunden", "Diese Seite gibt es nicht.", null), 404); }
