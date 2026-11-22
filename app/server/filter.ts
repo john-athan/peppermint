@@ -19,6 +19,12 @@ function termRe(term: string): RegExp {
   return new RegExp(`(?<![\\p{L}\\p{N}])${body}${prefix ? "" : "(?![\\p{L}\\p{N}])"}`, "u");
 }
 
+/** A tester for one word or phrase over any text, by the same rules as a filter term. */
+export function mentions(term: string): (text: string) => boolean {
+  const re = termRe(term);
+  return text => re.test(fold(text));
+}
+
 /** What a client sends, cleaned: at most 30 terms per list, each 2 to 60 characters, no duplicates. */
 export function cleanFilter(raw: unknown): SourceFilter {
   const list = (v: unknown) => {

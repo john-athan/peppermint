@@ -3,7 +3,8 @@
 // request for new things becomes probes on Today. The model plans and writes (askJSON); the code here does every read
 // and write, so nothing it says reaches the database unchecked. Agent stories stay outside the scored edition.
 import { AGENT_STORIES, db, json, now } from "./db";
-import { askJSON, hasLLM, SMALL_MODEL, streamText, TOPICS } from "./llm";
+import { askJSON, hasLLM, SMALL_MODEL, streamText } from "./llm";
+import { topicsFor } from "./topics";
 import { decode, extract, get, host, pool, type RawItem } from "./connectors/util";
 import { newsSearch } from "./connectors/more";
 import { clusterPending, insertItems, refreshStory } from "./pipeline";
@@ -458,7 +459,7 @@ function palateContext(owner: number) {
     ...[...per.entries()].sort((a, b) => Object.values(b[1]).reduce((x, y) => x + y, 0) - Object.values(a[1]).reduce((x, y) => x + y, 0)).slice(0, 20)
       .map(([t, m]) => `- ${t}: ${Object.entries(m).map(([k, n]) => `${n} ${k}`).join(", ")}`),
     `Sources: ${sources.join(", ") || "none"}`,
-    `Topics that exist: ${TOPICS.join(", ")}`,
+    `Topics that exist: ${topicsFor(owner).join(", ")}`,
   ].join("\n");
 }
 
@@ -471,7 +472,7 @@ const CHANGE_SCHEMA = {
 };
 /** The model's changes, checked: known kinds, topics from the list, sources you have, weights in range, at most eight. */
 export function cleanChanges(owner: number, changes: any[] = [], rs: any[] = []): PalateChange[] {
-  const topic = (n: string) => TOPICS.find(t => t.toLowerCase() === n.toLowerCase());
+  const known = topicsFor(owner), topic = (n: string) => known.find(t => t.toLowerCase() === n.toLowerCase());
   const srcs = (db.query("SELECT name FROM sources WHERE owner_id = ? AND kind != 'agent'").all(owner) as { name: string }[]).map(s => s.name);
   const source = (n: string) => srcs.find(s => s.toLowerCase() === n.toLowerCase());
   const name = (kind: string, n: unknown) => { const v = String(n ?? "").replace(/\s+/g, " ").trim().slice(0, 80); return !v ? null : kind === "topic" ? topic(v) ?? null : kind === "source" ? source(v) ?? null : v; };

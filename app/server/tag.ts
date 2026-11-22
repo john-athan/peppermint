@@ -2,6 +2,8 @@
 import { db, json, now } from "./db";
 import { backend, tagItems, type Tags } from "./llm";
 import { pool } from "./connectors/util";
+import { mentions } from "./filter";
+import { ownTopics } from "./topics";
 
 const LEX: Record<string, string[]> = {
   AI: ["ai", "llm", "gpt", "claude", "openai", "anthropic", "machine learning", "neural", "model", "ki", "künstliche intelligenz", "chatbot", "agent", "transformer"],
@@ -52,7 +54,7 @@ export function detectLang(text: string): string {
   return de > en ? "de" : "en";
 }
 
-export function tagLocally(item: { title: string; summary?: string | null; body?: string | null; lang?: string | null }): Tags {
+export function tagLocally(item: { title: string; summary?: string | null; body?: string | null; lang?: string | null }, own: string[] = []): Tags {
   // the structure markers of stored articles (## headings, - lists, **bold**) carry no meaning here
   const full = `${item.title}\n${item.summary ?? ""}\n${(item.body ?? "").slice(0, 5000)}`.replace(/\*\*|^#{2,3}\s|^[->]\s/gm, "");
   const lower = ` ${full.toLowerCase().replace(/[^\p{L}\p{N}+#\- ]/gu, " ")} `;
@@ -62,7 +64,9 @@ export function tagLocally(item: { title: string; summary?: string | null; body?
     for (const k of kws) { const re = ` ${k} `; if (titleLower.includes(re)) s += 3; let i = 0, n = 0; while ((i = lower.indexOf(re, i)) !== -1 && n < 5) { n++; i += re.length; } s += n; }
     return [t, s];
   });
-  const topics = scores.filter(([, s]) => s >= 2).sort((a, b) => b[1] - a[1]).slice(0, 3).map(([t]) => t);
+  // the reader's own topics: named in the title counts most, then in the text; they come before the general ones
+  const mine = own.map(t => { const says = mentions(t); return [t, (says(item.title) ? 3 : 0) + (says(full) ? 2 : 0)] as [string, number]; }).filter(([, s]) => s >= 2);
+  const topics = [...mine.sort((a, b) => b[1] - a[1]), ...scores.filter(([, s]) => s >= 2).sort((a, b) => b[1] - a[1])].slice(0, 3).map(([t]) => t);
   // places named in the title or lead count; a list of districts deep in the body does not
   const head = `${item.title}\n${item.summary ?? ""}\n${(item.body ?? "").slice(0, 600)}`;
   const places = PLACES.filter(p => new RegExp(`(^|[^\\p{L}])${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}([^\\p{L}]|$)`, "u").test(head)).slice(0, 3);
@@ -86,7 +90,7 @@ export function tagLocally(item: { title: string; summary?: string | null; body?
 }
 
 export async function tagPending(limit = 50) {
-  const rows = db.query(`SELECT i.id, i.title, i.summary, i.body, i.lang, i.meta, s.name AS source FROM items i JOIN sources s ON s.id = i.source_id
+  const rows = db.query(`SELECT i.id, i.owner_id, i.title, i.summary, i.body, i.lang, i.meta, s.name AS source FROM items i JOIN sources s ON s.id = i.source_id
     WHERE i.tagged = 0 AND i.published_at > ? ORDER BY i.published_at DESC LIMIT ?`).all(now() - 72 * 3600_000, limit) as any[];
   await tagRows(rows);
   db.query("UPDATE items SET tagged = 1, tags = ? WHERE tagged = 0 AND published_at <= ?").run(JSON.stringify({ topics: [], atoms: [] }), now() - 72 * 3600_000);
@@ -96,7 +100,7 @@ export async function tagPending(limit = 50) {
 /** Tags these items now, whatever their age: the agent's research and shared links are read the moment they arrive. */
 export async function tagIds(ids: number[]) {
   if (!ids.length) return;
-  const rows = db.query(`SELECT i.id, i.title, i.summary, i.body, i.lang, i.meta, s.name AS source FROM items i JOIN sources s ON s.id = i.source_id
+  const rows = db.query(`SELECT i.id, i.owner_id, i.title, i.summary, i.body, i.lang, i.meta, s.name AS source FROM items i JOIN sources s ON s.id = i.source_id
     WHERE i.id IN (${ids.map(() => "?").join(",")}) AND i.tagged = 0`).all(...ids) as any[];
   await tagRows(rows);
 }
@@ -112,15 +116,18 @@ async function tagRows(rows: any[]) {
   const be = backend();
   // the CLI pays a process start per call, so it gets big batches; the API gets one item per request, four at a time
   const size = be === "cli" ? 25 : 1;
-  const batches: any[][] = [];
-  for (let i = 0; i < rows.length; i += size) batches.push(rows.slice(i, i + size));
-  await pool(batches, be === "cli" ? 2 : be === "api" ? 4 : 1, async batch => {
+  // a batch holds one reader's items only: each reader's own topics go with their batch
+  const byOwner = new Map<number, any[]>();
+  for (const r of rows) byOwner.set(r.owner_id, [...(byOwner.get(r.owner_id) ?? []), r]);
+  const batches: { own: string[]; rows: any[] }[] = [];
+  for (const [owner, rs] of byOwner) { const own = ownTopics(owner); for (let i = 0; i < rs.length; i += size) batches.push({ own, rows: rs.slice(i, i + size) }); }
+  await pool(batches, be === "cli" ? 2 : be === "api" ? 4 : 1, async ({ own, rows: batch }) => {
     let tags: (Tags | null)[] = batch.map(() => null);
     if (be !== "none") {
-      try { tags = await tagItems(batch); }
+      try { tags = await tagItems(batch, own); }
       catch (e) { console.warn(`tag batch of ${batch.length} failed, using local:`, String(e).slice(0, 160)); }
     }
-    db.transaction(() => batch.forEach((r, i) => save(r, tags[i] ?? tagLocally(r))))();
+    db.transaction(() => batch.forEach((r, i) => save(r, tags[i] ?? tagLocally(r, own))))();
   });
 }
 

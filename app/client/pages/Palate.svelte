@@ -12,8 +12,8 @@
   import ProposalCard from "../components/ProposalCard.svelte";
   import { agent, watchAgent, openProposals, submit } from "../lib/agent.svelte";
 
-  type P = { topics: { name: string; n: number; weight: number }[]; others: { kind: string; name: string; weight: number }[]; rules: { id: number; action: string; kind: string; value: string }[]; count: number; signals: { kind: string; value: number; at: number; title: string | null }[]; settings: { budget: number; threshold: number; lang: "en" | "de"; style: string; images: boolean; briefing: boolean; briefing_email: string }; briefing: { day: string; error: string | null } | null };
-  let p = $state<P | null>(null), sel = $state(0), ruleOpen = $state(false);
+  type P = { topics: { name: string; n: number; weight: number }[]; own: string[]; others: { kind: string; name: string; weight: number }[]; rules: { id: number; action: string; kind: string; value: string }[]; count: number; signals: { kind: string; value: number; at: number; title: string | null }[]; settings: { budget: number; threshold: number; lang: "en" | "de"; style: string; images: boolean; briefing: boolean; briefing_email: string }; briefing: { day: string; error: string | null } | null };
+  let p = $state<P | null>(null), sel = $state(0), ruleOpen = $state(false), newTopic = $state(""), adding = $state(false);
   let ra = $state("never"), rk = $state("topic"), rv = $state(""), vals = $state<string[]>([]);
   let duel = $state<{ id: number; title: string; topic: string; source: string }[] | null>(null), won = $state<number | null>(null), duels = $state(0);
   // offline the palate cannot load; it loads by itself once the connection is back
@@ -27,6 +27,19 @@
   const ringed = $derived(new Set(proposals.flatMap(p => p.changes).flatMap(c => c.type === "weight" && c.kind === "topic" ? [c.name.toLowerCase()] : [])));
   // the agent can change weights and rules, so the map and the rules are read again after it answers
   const ask = (q: string) => submit(q, { kind: "palate" }).then(load);
+  // your own topics (server/topics.ts): next to the built-in ones, given to Claude when it tags your stories
+  async function addOwn(e: Event) {
+    e.preventDefault(); const name = newTopic.trim(); if (!name) return; adding = true;
+    try {
+      const r = await api<{ name: string; builtin: boolean; marked: number }>("/api/topics", { method: "POST", json: { name } });
+      newTopic = ""; await load();
+      toast(r.builtin ? `${r.name} is a built-in topic: it is on your palate at +1 now.` : `${r.name} is yours, at +1.${r.marked ? ` ${r.marked} ${r.marked === 1 ? "story" : "stories"} from this week carry it already.` : " New stories that are about it carry it from now on."}`);
+    } catch (err: any) { toast(err.message); } finally { adding = false; }
+  }
+  async function dropOwn(name: string) {
+    try { await api(`/api/topics/${encodeURIComponent(name)}`, { method: "DELETE" }); sel = 0; await load(); toast(`${name} is gone from your topics and your stories.`); }
+    catch (err: any) { toast(err.message); }
+  }
 
   // bubble layout: start on a golden-angle spiral (strongest first, near the centre), then push apart until nothing overlaps
   let W = $state(360), H = $state(290);
@@ -146,8 +159,17 @@
             </div>
           {/if}
         {:else}
-          <div class="empty"><b>No topics yet</b><span>Your map fills in after the first harvest.</span></div>
+          <div class="empty"><b>No topics yet</b><span>Your map fills in after the first harvest, or add topics of your own below.</span></div>
         {/if}
+        <div class="own-topics">
+          <span class="lbl">Your own topics</span>
+          {#if p.own.length}<div class="rule-line">{#each p.own as t (t)}<span class="rchip">{t}<button type="button" aria-label="Remove your topic {t}" onclick={() => dropOwn(t)}>×</button></span>{/each}</div>{/if}
+          <form class="own-add" onsubmit={addOwn}>
+            <input type="text" bind:value={newTopic} maxlength="40" placeholder="e.g. REACH, PFAS, Packaging" aria-label="A topic of your own" />
+            <button class="ghost sm" type="submit" disabled={adding || newTopic.trim().length < 2}>Add topic</button>
+          </form>
+          <p class="hint">Words or phrases next to the built-in topics. Claude tags your stories with them, and each starts at +1.</p>
+        </div>
       </section>
       <section class="pal-sec">
         <div class="group-label">Rules</div>

@@ -127,38 +127,51 @@ Mark atoms that are unverified assertions as kind "claim".`;
 type TagIn = { title: string; summary?: string | null; body?: string | null; source: string };
 const itemText = (it: TagIn, body: number) => `Source: ${it.source}\nTitle: ${it.title}\n\n${it.summary ?? ""}\n\n${(it.body ?? "").slice(0, body)}`;
 
-/** Tags a batch. The API backend sends one request per item (cached system prompt); the CLI backend sends the whole batch in one call. */
-export async function tagItems(items: TagIn[]): Promise<(Tags | null)[]> {
+/** The tag schema and instructions for one reader: the built-in topics plus the reader's own (server/topics.ts). */
+function tagSpec(own: string[]) {
+  if (!own.length) return { schema: TAG_SCHEMA, system: TAG_SYSTEM, allowed: TOPIC_SET };
+  const all = [...TOPICS, ...own];
+  return {
+    schema: { ...TAG_SCHEMA, properties: { ...TAG_SCHEMA.properties, topics: { ...TAG_SCHEMA.properties.topics, items: { type: "string", enum: all } } } },
+    system: `${TAG_SYSTEM}\nThe reader also follows topics of their own: ${own.join(", ")}. Whenever an item is about one of them, tag it with that topic, ahead of the general ones.`,
+    allowed: new Set<string>(all),
+  };
+}
+
+/** Tags a batch of one reader's items. The API backend sends one request per item (cached system prompt); the CLI
+ *  backend sends the whole batch in one call. `own` are the reader's own topics, offered next to the built-in ones. */
+export async function tagItems(items: TagIn[], own: string[] = []): Promise<(Tags | null)[]> {
+  const spec = tagSpec(own);
   if (backend() === "cli") {
     const schema = { type: "object", additionalProperties: false, required: ["items"], properties: { items: { type: "array", items: {
-      ...TAG_SCHEMA, required: ["i", ...TAG_SCHEMA.required], properties: { i: { type: "integer", description: "Index of the item" }, ...TAG_SCHEMA.properties } } } } };
+      ...spec.schema, required: ["i", ...TAG_SCHEMA.required], properties: { i: { type: "integer", description: "Index of the item" }, ...spec.schema.properties } } } } };
     const prompt = `Tag each of the ${items.length} items below. Return one entry per item with its index i.\n\n` +
       items.map((it, i) => `<item i="${i}">\n${itemText(it, 2500)}\n</item>`).join("\n\n");
-    const out = await cliJSON(prompt, TAG_SYSTEM, SMALL_MODEL, schema);
+    const out = await cliJSON(prompt, spec.system, SMALL_MODEL, schema);
     const res: (Tags | null)[] = items.map(() => null);
-    for (const t of (out?.items ?? []) as any[]) if (Number.isInteger(t?.i) && t.i >= 0 && t.i < items.length && validTags(t)) { const { i, ...rest } = t; res[i] = { ...rest, emblem: normalizeEmblem(rest.emblem), by: SMALL_MODEL }; }
+    for (const t of (out?.items ?? []) as any[]) if (Number.isInteger(t?.i) && t.i >= 0 && t.i < items.length && validTags(t, spec.allowed)) { const { i, ...rest } = t; res[i] = { ...rest, emblem: normalizeEmblem(rest.emblem), by: SMALL_MODEL }; }
     return res;
   }
   return Promise.all(items.map(async it => {
     const r: any = await (await messages({
       model: SMALL_MODEL, max_tokens: 2000,
-      system: [{ type: "text", text: TAG_SYSTEM, cache_control: { type: "ephemeral" } }],
-      output_config: { effort: "low", format: { type: "json_schema", schema: TAG_SCHEMA } },
+      system: [{ type: "text", text: spec.system, cache_control: { type: "ephemeral" } }],
+      output_config: { effort: "low", format: { type: "json_schema", schema: spec.schema } },
       messages: [{ role: "user", content: itemText(it, 6000) }],
     })).json();
     if (r.stop_reason === "refusal") throw new Error("refused");
     const block = r.content?.find((b: any) => b.type === "text");
     const t = JSON.parse(block.text);
-    return validTags(t) ? { ...t, emblem: normalizeEmblem(t.emblem), by: SMALL_MODEL } as Tags : null;
+    return validTags(t, spec.allowed) ? { ...t, emblem: normalizeEmblem(t.emblem), by: SMALL_MODEL } as Tags : null;
   }));
 }
 
 const TOPIC_SET = new Set<string>(TOPICS);
 const strs = (x: unknown) => Array.isArray(x) && x.every(v => typeof v === "string");
 /** The CLI's structured output is validated by the CLI; this re-checks the shape before anything reaches the database. */
-export function validTags(t: any): t is Tags {
+export function validTags(t: any, allowed: Set<string> = TOPIC_SET): t is Tags {
   return !!t && typeof t.lang === "string" && typeof t.title_en === "string" && typeof t.summary_en === "string" &&
-    strs(t.topics) && t.topics.every((x: string) => TOPIC_SET.has(x)) && strs(t.people) && strs(t.orgs) && strs(t.places) &&
+    strs(t.topics) && t.topics.every((x: string) => allowed.has(x)) && strs(t.people) && strs(t.orgs) && strs(t.places) &&
     Array.isArray(t.atoms) && t.atoms.every((a: any) => a && typeof a.kind === "string" && typeof a.text === "string") && typeof t.opinion === "boolean";
 }
 

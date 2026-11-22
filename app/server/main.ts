@@ -14,7 +14,7 @@ import { normalizeEmblem } from "../shared/emblem";
 import { applySignal, buildEdition, feedPage, rules, scoreStories, SIGNAL_KINDS, slotNow } from "./palate";
 import { shortStory, standIn, unreadable } from "./material";
 import { adoptLang, cachedBrief, DEFAULT_STYLE, lensStream, originalText, readingLang, readingStyle, warmBriefs } from "./lens";
-import { hasLLM, LENSES, TOPICS } from "./llm";
+import { hasLLM, LENSES } from "./llm";
 import { tagPending, tagsOf } from "./tag";
 import * as briefing from "./briefing";
 import { serveVoice, setVoiceBundle, voiceManifest } from "./voice";
@@ -32,6 +32,7 @@ import { ASSETLINKS, listenRoutes } from "./listen-routes";
 import { servePublic } from "./public";
 import { atomsFor, chartFromDraft, createDraft, FORMS, getDraft, listDrafts, previewStream, saveDraft, suggestStream } from "./studio";
 import { cleanFilter, parseFilter } from "./filter";
+import { addTopic, ownTopics, removeTopic, TopicError, topicsFor } from "./topics";
 import { readFileSync, existsSync } from "node:fs";
 import { join, dirname } from "node:path";
 
@@ -568,12 +569,22 @@ route("GET", "/api/palate", ({ owner }) => {
   const count = (db.query("SELECT count(*) AS n FROM signals WHERE owner_id = ?").get(owner) as any).n;
   return J({
     topics: topics.sort((a, b) => Math.abs(b.weight) + b.n / 20 - (Math.abs(a.weight) + a.n / 20)).slice(0, 18),
+    own: ownTopics(owner!),
     others: aff.filter(a => a.kind !== "topic").slice(0, 16), rules: rules(owner!), count,
     signals: signals.map(s => ({ kind: s.kind, value: s.value, at: s.at, title: s.tags && json<any>(s.tags, {}).lang !== "en" ? (s.title_en || s.title) : s.title })),
     settings: { budget: setting(owner!, "budget", 12), threshold: setting(owner!, "threshold", 0.55), lang: readingLang(owner!), style: readingStyle(owner!), images: setting(owner!, "images", true), briefing: setting(owner!, "briefing", true), briefing_email: setting(owner!, "briefing_email", "") },
     // the latest briefing, so the email card can offer "send today's" and show why the last email failed
     briefing: (b => b ? { day: b.day, error: b.error } : null)(briefing.latest(owner!)),
   });
+});
+// your own topics (server/topics.ts): added with +1, marked at once on the last week's stories that mention them
+route("POST", "/api/topics", async ({ req, owner }) => {
+  try { const r = addTopic(owner!, (await body(req)).name); rejudge(owner!); return J({ ...r, own: ownTopics(owner!) }); }
+  catch (e) { if (e instanceof TopicError) return err(e.status, e.message); throw e; }
+});
+route("DELETE", "/api/topics/:name", ({ owner, params }) => {
+  try { removeTopic(owner!, params.name); rejudge(owner!); return J({ own: ownTopics(owner!) }); }
+  catch (e) { if (e instanceof TopicError) return err(e.status, e.message); throw e; }
 });
 route("PUT", "/api/affinities", async ({ req, owner }) => {
   const b = await body(req);
@@ -609,7 +620,7 @@ route("PUT", "/api/settings", async ({ req, owner }) => {
 });
 route("GET", "/api/rule-values", ({ url, owner }) => {
   const kind = url.searchParams.get("kind") ?? "topic";
-  if (kind === "topic") return J({ values: [...TOPICS] });
+  if (kind === "topic") return J({ values: topicsFor(owner!) });
   if (kind === "source") return J({ values: (db.query("SELECT name FROM sources WHERE owner_id = ?").all(owner) as any[]).map(r => r.name) });
   const recent = db.query("SELECT tags FROM stories WHERE owner_id = ? AND last_at > ? ORDER BY last_at DESC LIMIT 400").all(owner, now() - 7 * 86400_000) as any[];
   const key = kind === "person" ? "people" : kind === "org" ? "orgs" : "places";

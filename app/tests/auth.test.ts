@@ -1,5 +1,5 @@
-// The accounts module mounted in peppermint: the first run's link, the Lax host cookie, the palate a new reader starts
-// with, the origin check on the app's own routes, and invites. The module's own rules are in accounts.test.ts.
+// The accounts module mounted in peppermint: the first run's link, the Lax host cookie, the empty palate a new reader
+// starts with, the origin check on the app's own routes, and invites. The module's own rules are in accounts.test.ts.
 process.env.PEPPERMINT_DB = ":memory:";
 process.env.PEPPERMINT_NO_SCHEDULER = "1";
 process.env.PORT = "0";
@@ -22,14 +22,14 @@ async function register(key: Key, token: string) {
 }
 
 let admin = "";
-test("the first run's link makes the first reader, an admin with a starting palate, signed in with a Lax host cookie", async () => {
+test("the first run's link makes the first reader, an admin with an empty palate, signed in with a Lax host cookie", async () => {
   expect(await j(await fetch(BASE + "/api/auth/state"))).toMatchObject({ setupOpen: true, loggedIn: false });
   const r = await register(await Key.make(-7, ORIGIN), "first-run");
   expect(r.status).toBe(200);
   expect(r.headers.get("set-cookie")).toMatch(/^__Host-peppermint=[^;]+; Path=\/; Secure; HttpOnly; SameSite=Lax; Max-Age=\d+$/);
   admin = cookieOf(r)!;
   expect((await j(await call("GET", "/api/account", { cookie: admin }))).role).toBe("admin");
-  expect((db.query("SELECT count(*) AS n FROM affinities WHERE owner_id = 1").get() as { n: number }).n).toBeGreaterThan(5);
+  expect((db.query("SELECT count(*) AS n FROM affinities WHERE owner_id = 1").get() as { n: number }).n).toBe(0);
   expect((await call("GET", "/api/edition", { cookie: admin })).status).toBe(200);
 });
 
@@ -42,17 +42,18 @@ test("the app's own routes need a session and a same-origin request", async () =
   expect((await bare({ "sec-fetch-site": "same-origin" })).status).not.toBe(403);
 });
 
-test("an invite gives a second reader their own account and palate; they see the group but cannot invite", async () => {
+test("an invite gives a second reader their own empty account; they see the group but cannot invite", async () => {
   const inv = await j(await call("POST", "/api/members", { cookie: admin, json: { name: "Sam" } }));
   expect(inv.link).toStartWith(`${ORIGIN}/setup#`);
   const r = await register(await Key.make(-257, ORIGIN), inv.link.split("#")[1]);
   expect(r.status).toBe(200);
   const sam = cookieOf(r)!;
   expect(await j(await call("GET", "/api/account", { cookie: sam }))).toMatchObject({ id: inv.member, name: "Sam", role: "member" });
-  expect((db.query("SELECT count(*) AS n FROM affinities WHERE owner_id = ?").get(inv.member) as { n: number }).n).toBeGreaterThan(5);
+  expect((db.query("SELECT count(*) AS n FROM affinities WHERE owner_id = ?").get(inv.member) as { n: number }).n).toBe(0);
+  // Sam gets a palate of their own by hand: from then on Sam owns data, and taking access away keeps it
+  expect((await call("PUT", "/api/affinities", { cookie: sam, json: { kind: "topic", name: "Science", weight: 2 } })).status).toBe(200);
   expect((await j(await call("GET", "/api/members", { cookie: sam }))).map((m: any) => m.name)).toEqual(["Me", "Sam"]);
   expect((await call("POST", "/api/members", { cookie: sam, json: { name: "Kim" } })).status).toBe(403);
-  // Sam has a palate now: taking access away keeps it
   expect(await j(await call("DELETE", `/api/members/${inv.member}`, { cookie: admin }))).toEqual({ ok: true, result: "revoked" });
   expect((await call("GET", "/api/edition", { cookie: sam })).status).toBe(401);
 });

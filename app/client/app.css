@@ -1550,3 +1550,8 @@ span.opt { cursor: default; }
 @media (min-width: 900px) { .nav .nav-acct { display: flex; } .acct-entry { display: none; } }
 .src-address { display: flex; align-items: center; gap: 8px; }
 .src-address code { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.own-topics { margin: 12px 14px 0; display: grid; gap: 8px; }
+.own-topics .lbl { margin: 0; }
+.own-add { display: flex; gap: 8px; align-items: center; }
+.own-add input { flex: 1; min-width: 0; font: 14px var(--font-body); color: var(--ink); background: var(--bg); border: 1px solid var(--rule); border-radius: 12px; padding: 8px 11px; }
+.own-add input:focus { outline: 2px solid var(--mint); outline-offset: 0; border-color: transparent; }
