@@ -11,8 +11,7 @@ paragraph from the story plus a quick search of other reports and Wikipedia, wit
 everything you follow as you type, and its agent turns a line into something the app shows: a link into an item, a
 question into a dossier, a wish into a palate change you can undo, a question about a story into the Ask lens.
 
-Live at https://peppermint.kaleve.dev. The design of the server is in `docs/backend.md`. The wider plan, with the
-regional and creator side, is `../business-plan.md` and `../peppermint.html`.
+Live at https://peppermint.kaleve.dev. The design of the server is in `docs/backend.md`.
 
 ## Run
 

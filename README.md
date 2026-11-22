@@ -14,7 +14,6 @@ toolbox/home).
 | `android/` | The Android app: the web app full screen, plus podcasts and the edition to listen to offline. `app/docs/android.md` explains it. |
 | `app/deploy/` | `deploy.sh`, `nginx.sh`, the unit and `app.env`; `deploy/README.md` explains the template. |
 | `tools/validate.sh` | Every check, the same script CI runs. |
-| `business-plan.md`, `peppermint.html` | The wider plan. |
 
 ## Run, check, deploy
 

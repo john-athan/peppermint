@@ -7,3 +7,6 @@ app/build-linux.tgz
 app/client/lib/marks.gen.ts
 app/tests/fixtures/
 .claude/
+# The business plan stays local, out of the public repo
+business-plan.md
+peppermint.html
