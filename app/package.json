@@ -1,0 +1,17 @@
+{
+  "name": "peppermint",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun run build.ts && bun --watch server/main.ts",
+    "build": "bun run build.ts",
+    "start": "bun server/main.ts",
+    "test": "bun test --isolate",
+    "compile": "bun run build.ts && bun build --compile server/main.ts --outfile dist/peppermint && (test \"$(uname)\" != Darwin || codesign --force --sign - dist/peppermint)",
+    "stub": "bun tools/stub-anthropic.ts",
+    "e2e": "bun tools/e2e.ts"
+  },
+  "dependencies": {
+    "svelte": "5.58.0"
+  }
+}

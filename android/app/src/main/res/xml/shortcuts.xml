@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long press on the icon: straight to listening. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="listen"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/listen_short"
+        android:shortcutLongLabel="@string/listen_long">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="dev.kaleve.peppermint"
+            android:targetClass="dev.kaleve.peppermint.ListenActivity" />
+    </shortcut>
+</shortcuts>

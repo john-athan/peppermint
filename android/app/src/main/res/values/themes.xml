@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose paints the ground itself; the platform window only avoids a white flash. -->
+    <style name="Theme.Peppermint" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">#FFE8F7EC</item>
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+    </style>
+    <color name="ic_launcher_background">#FFD3F3DF</color>
+</resources>

@@ -1,0 +1,699 @@
+<title>peppermint</title>
+<style>
+/* Street-sign blue, a roman serif, light and dark. One page with a one-line footer;
+ * the product screens are the figure. No web fonts (fully self-contained): system
+ * serif and sans stacks. Layout: product screens first, diagrams between them, every depth detail in data-tip */
+:root {
+  --bg: #f2f4f6;
+  --surface: #ffffff;
+  --surface-2: #e9edf1;
+  --ink: #141920;
+  --muted: #5a6370;
+  --rule: #d6dce3;
+  --accent: #1c4fb5;
+  --accent-soft: #dfe8fa;
+  --on-accent: #ffffff;
+  --alert: #c8401b;
+  --alert-soft: #fbe6de;
+  --warn: #b77d00;
+  --warn-soft: #f8edcf;
+  --ok: #2c7a4b;
+  --ok-soft: #dcefe3;
+  --shadow: 0 1px 2px rgb(20 25 32 / .06), 0 8px 24px -12px rgb(20 25 32 / .18);
+  --font-display: "Iowan Old Style", "Charter", "Palatino Linotype", "Book Antiqua", Georgia, serif;
+  --font-body: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1217; --surface: #161b22; --surface-2: #1e252e; --ink: #e6eaef; --muted: #98a2b0; --rule: #2a323d;
+    --accent: #7ea4ff; --accent-soft: #1d2a45; --on-accent: #0e1217;
+    --alert: #ff7b55; --alert-soft: #3a1f17; --warn: #e5b440; --warn-soft: #362b12; --ok: #5cc48a; --ok-soft: #15301f;
+    --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 8px 24px -12px rgb(0 0 0 / .6);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1217; --surface: #161b22; --surface-2: #1e252e; --ink: #e6eaef; --muted: #98a2b0; --rule: #2a323d;
+  --accent: #7ea4ff; --accent-soft: #1d2a45; --on-accent: #0e1217;
+  --alert: #ff7b55; --alert-soft: #3a1f17; --warn: #e5b440; --warn-soft: #362b12; --ok: #5cc48a; --ok-soft: #15301f;
+  --shadow: 0 1px 2px rgb(0 0 0 / .4), 0 8px 24px -12px rgb(0 0 0 / .6);
+  color-scheme: dark;
+}
+html, body { overflow-x: clip; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1140px; margin: 0 auto; padding-inline: 20px; padding-block: 40px 24px; display: grid; gap: 72px; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 600; font-style: normal; text-wrap: balance; margin: 0; overflow-wrap: anywhere; min-width: 0; }
+h1 { font-size: clamp(44px, 8vw, 84px); line-height: .95; letter-spacing: -.02em; }
+h2 { font-size: clamp(26px, 3.4vw, 36px); line-height: 1.1; }
+p { margin: 0; max-width: 62ch; }
+.eyebrow { font-family: var(--font-mono); font-size: 11.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: 18px; color: var(--muted); }
+section { display: grid; gap: 20px; min-width: 0; }
+.head { display: grid; gap: 8px; }
+[data-tip] { cursor: help; }
+[data-tip]:focus-visible, button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.scroll { overflow-x: auto; min-width: 0; }
+svg text { font-family: var(--font-body); }
+
+/* hero */
+.hero { display: grid; gap: 20px; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); align-items: end; }
+.hero .mark { display: flex; align-items: baseline; gap: 12px; }
+.hero .dot { width: 14px; height: 14px; border-radius: 50%; background: var(--accent); display: inline-block; }
+.kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid var(--rule); }
+.kpi { padding: 14px 12px 0 0; display: grid; gap: 2px; }
+.kpi b { font-family: var(--font-display); font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.kpi span { font-size: 12.5px; color: var(--muted); }
+@media (max-width: 760px) { .hero { grid-template-columns: 1fr; } }
+
+/* two lists */
+.lists { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; }
+.list { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; padding: 18px; display: grid; gap: 12px; align-content: start; }
+.list h3 { font-size: 20px; }
+.grp { display: grid; gap: 6px; }
+.grp > .eyebrow { font-size: 10.5px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 13px; padding: 3px 9px; border-radius: 999px; border: 1px solid var(--rule); background: var(--surface-2); }
+.list.out .chip { color: var(--muted); }
+.list.in .chip { background: var(--accent-soft); border-color: transparent; color: var(--ink); }
+.list .count { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+@media (max-width: 760px) { .lists { grid-template-columns: 1fr; } }
+
+/* bundle diagram */
+.figure { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; padding: 16px; }
+.bundle { min-width: 720px; width: 100%; height: auto; display: block; }
+
+/* screens */
+.screens { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 18px; }
+@media (max-width: 1100px) { .screens { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 620px) { .screens { grid-template-columns: minmax(0, 1fr); } }
+figure.shot { margin: 0; display: grid; gap: 10px; align-content: start; min-width: 0; }
+figure.shot figcaption { font-size: 13px; color: var(--muted); }
+figure.shot figcaption b { color: var(--ink); font-weight: 600; }
+.app { background: var(--surface); border: 1px solid var(--rule); border-radius: 22px; box-shadow: var(--shadow); overflow: hidden; display: grid; grid-template-rows: auto 1fr auto; min-height: 600px; max-width: 360px; width: 100%; justify-self: center; font-size: 13px; }
+.bar { display: flex; align-items: center; justify-content: space-between; padding: 14px 14px 10px; border-bottom: 1px solid var(--rule); gap: 8px; }
+.logo { font-family: var(--font-display); font-weight: 700; font-size: 20px; letter-spacing: -.01em; display: flex; align-items: center; gap: 6px; }
+.logo i { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); display: inline-block; }
+.addr { font-size: 11.5px; background: var(--surface-2); padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
+.body { padding: 12px; display: grid; gap: 12px; align-content: start; min-width: 0; }
+.tabs { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid var(--rule); font-size: 10.5px; color: var(--muted); text-align: center; }
+.tabs span { padding: 8px 0 10px; display: grid; justify-items: center; gap: 3px; }
+.tabs span::before { content: ""; width: 16px; height: 3px; border-radius: 2px; background: var(--rule); }
+.tabs .on { color: var(--accent); font-weight: 600; }
+.tabs .on::before { background: var(--accent); }
+.mono { font-family: var(--font-mono); font-size: 10.5px; letter-spacing: .06em; text-transform: uppercase; }
+.alertcard { background: var(--alert-soft); border-radius: 12px; padding: 10px 12px; display: grid; gap: 5px; }
+.alertcard .mono { color: var(--alert); display: flex; align-items: center; gap: 6px; }
+.pulse { width: 7px; height: 7px; border-radius: 50%; background: var(--alert); display: inline-block; }
+.alertcard strong { font-size: 14px; line-height: 1.3; }
+.alertcard small { color: var(--muted); font-size: 11.5px; }
+.verified { color: var(--ok); font-weight: 600; }
+.block { display: grid; gap: 6px; }
+.block > .mono { color: var(--muted); }
+.map { border-radius: 10px; overflow: hidden; background: var(--surface-2); }
+.map svg { display: block; width: 100%; height: auto; }
+.row { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 8px; align-items: baseline; padding: 6px 0; border-bottom: 1px solid var(--rule); }
+.row:last-child { border-bottom: 0; }
+.row i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+.row em { font-style: normal; font-size: 11px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.c-warn { background: var(--warn); } .c-acc { background: var(--accent); } .c-ok { background: var(--ok); } .c-alert { background: var(--alert); }
+.story { display: grid; grid-template-columns: minmax(0, 1fr) 56px; gap: 10px; align-items: start; }
+.story h4 { margin: 0; font-family: var(--font-display); font-size: 15.5px; line-height: 1.2; font-weight: 600; }
+.thumb { width: 56px; height: 56px; border-radius: 8px; background: var(--surface-2); }
+.thumb svg { width: 100%; height: 100%; display: block; }
+.by { display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: var(--muted); }
+.av { width: 22px; height: 22px; border-radius: 50%; background: var(--accent-soft); color: var(--accent); font-size: 9.5px; font-weight: 700; display: grid; place-items: center; flex: none; }
+.events { display: flex; gap: 6px; flex-wrap: wrap; }
+.ev { border: 1px solid var(--rule); border-radius: 8px; padding: 5px 8px; font-size: 11.5px; display: grid; }
+.ev b { font-variant-numeric: tabular-nums; font-size: 10.5px; color: var(--accent); }
+
+/* edition */
+.ed { list-style: none; margin: 0; padding: 0; display: grid; }
+.ed li { display: grid; gap: 2px; padding: 8px 0; border-bottom: 1px solid var(--rule); }
+.ed li b { font-family: var(--font-display); font-size: 15px; line-height: 1.25; }
+.ed li > span:not(.mono):not(.by) { color: var(--muted); font-size: 12.5px; }
+.ed .lock { font-style: normal; font-size: 11px; color: var(--accent); font-weight: 600; }
+.ed .by { margin-top: 3px; }
+.end { font-family: var(--font-display); text-align: center; color: var(--muted); border-top: 2px solid var(--ink); border-bottom: 1px solid var(--rule); padding: 8px 0; }
+.flow { min-width: 720px; width: 100%; height: auto; display: block; }
+.own { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+.own .figure { display: grid; gap: 8px; align-content: start; }
+.own h3 { font-size: 18px; }
+.own svg { width: 100%; height: auto; display: block; }
+@media (max-width: 980px) { .own { grid-template-columns: minmax(0, 1fr); } }
+
+/* article */
+.art h4 { margin: 0; font-family: var(--font-display); font-size: 21px; line-height: 1.15; font-weight: 600; }
+.kicker { color: var(--accent); }
+.means { background: var(--accent-soft); border-radius: 10px; padding: 10px 12px; display: grid; gap: 6px; }
+.means ul { margin: 0; padding-left: 16px; display: grid; gap: 4px; }
+.prose { font-family: var(--font-display); font-size: 14px; line-height: 1.5; }
+.how { border: 1px dashed var(--rule); border-radius: 10px; padding: 8px 10px; display: grid; gap: 4px; font-size: 11.5px; color: var(--muted); }
+.how b { color: var(--ink); }
+.ad { font-size: 12px; border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 7px 0; color: var(--muted); }
+.ad b { color: var(--ink); }
+.ad .lbl { font-family: var(--font-mono); font-size: 9.5px; letter-spacing: .08em; border: 1px solid var(--rule); border-radius: 4px; padding: 0 4px; margin-right: 4px; }
+.funded { background: var(--ok-soft); border-radius: 10px; padding: 8px 10px; font-size: 12px; display: flex; gap: 8px; align-items: center; }
+.funded b { font-variant-numeric: tabular-nums; }
+.btns { display: flex; gap: 6px; flex-wrap: wrap; }
+.btn { font: inherit; font-size: 12px; font-weight: 600; border-radius: 8px; padding: 7px 10px; border: 1px solid var(--rule); background: var(--surface); color: var(--ink); white-space: nowrap; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
+
+/* council */
+.meet { display: grid; gap: 3px; }
+.meet strong { font-family: var(--font-display); font-size: 16px; }
+.meet small { color: var(--muted); font-size: 11.5px; }
+.top { border: 1px solid var(--rule); border-radius: 10px; padding: 9px 10px; display: grid; gap: 6px; }
+.top.mine { border-color: var(--accent); background: var(--accent-soft); }
+.top .t { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+.top b { font-size: 13px; line-height: 1.3; }
+.pill { font-size: 10px; font-weight: 700; border-radius: 999px; padding: 2px 7px; white-space: nowrap; letter-spacing: .02em; }
+.p-ok { background: var(--ok-soft); color: var(--ok); }
+.p-warn { background: var(--warn-soft); color: var(--warn); }
+.p-acc { background: var(--accent); color: var(--on-accent); }
+.vote { display: flex; height: 6px; border-radius: 3px; overflow: hidden; background: var(--surface-2); }
+.vote span { display: block; height: 100%; }
+.vote .y { background: var(--ok); } .vote .n { background: var(--alert); } .vote .a { background: var(--rule); }
+.vtxt { font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.search { border: 1px solid var(--rule); border-radius: 8px; padding: 7px 10px; color: var(--muted); font-size: 12px; display: flex; justify-content: space-between; }
+.quote { font-family: var(--font-display); font-size: 13px; border-left: 2px solid var(--accent); padding-left: 8px; }
+.quote .mono { color: var(--muted); display: block; margin-bottom: 2px; }
+
+/* membership */
+.tier { border: 1px solid var(--rule); border-radius: 12px; padding: 10px 12px; display: grid; gap: 4px; }
+.tier.best { border: 2px solid var(--accent); }
+.tier .t { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.tier b { font-size: 14px; }
+.tier .price { font-family: var(--font-display); font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tier ul { margin: 0; padding-left: 16px; color: var(--muted); font-size: 12px; }
+.minis { display: flex; gap: 6px; }
+.mini { flex: 1; border: 1px solid var(--rule); border-radius: 10px; padding: 6px 8px; display: grid; font-size: 11.5px; }
+.mini b { font-family: var(--font-display); font-size: 16px; font-variant-numeric: tabular-nums; }
+.split { display: flex; height: 10px; border-radius: 5px; overflow: hidden; }
+.split span { display: block; height: 100%; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 10px; font-size: 11px; color: var(--muted); }
+.legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; margin-right: 4px; vertical-align: middle; }
+.fine { font-size: 11.5px; color: var(--muted); }
+
+/* pro desktop */
+.pro { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; box-shadow: var(--shadow); min-width: 900px; display: grid; grid-template-columns: 210px minmax(0, 1fr) 250px; font-size: 13px; overflow: hidden; }
+.side { background: var(--surface-2); padding: 16px 14px; display: grid; gap: 14px; align-content: start; }
+.side ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.side li { padding: 6px 8px; border-radius: 6px; display: flex; justify-content: space-between; gap: 6px; }
+.side li.on { background: var(--surface); font-weight: 600; }
+.side li em { font-style: normal; font-size: 11px; color: var(--accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+.main { padding: 16px; display: grid; gap: 12px; align-content: start; }
+.main .t { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.main h4 { margin: 0; font-family: var(--font-display); font-size: 20px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th { text-align: left; font-family: var(--font-mono); font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); font-weight: 500; padding: 6px 8px; border-bottom: 1px solid var(--rule); }
+td { padding: 8px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+td small { display: block; color: var(--muted); font-size: 11.5px; }
+tr.hl td { background: var(--accent-soft); }
+.aside { border-left: 1px solid var(--rule); padding: 16px 14px; display: grid; gap: 12px; align-content: start; }
+
+/* stepper */
+.steps { display: grid; grid-template-columns: repeat(6, minmax(170px, 1fr)); gap: 12px; min-width: 1080px; counter-reset: s; }
+.step { background: var(--surface); border: 1px solid var(--rule); border-radius: 14px; padding: 12px; display: grid; gap: 8px; align-content: start; transition: border-color .25s, box-shadow .25s, opacity .25s; }
+.js .step { opacity: .55; }
+.js .step.on { opacity: 1; border-color: var(--accent); box-shadow: var(--shadow); }
+.step .time { font-family: var(--font-mono); font-size: 12px; color: var(--accent); font-variant-numeric: tabular-nums; }
+.step p { font-size: 13px; }
+.step .vis { height: 92px; border-radius: 10px; background: var(--surface-2); display: grid; place-items: center; padding: 8px; }
+.step .vis svg { width: 100%; height: 100%; }
+.notif { background: var(--surface); border-radius: 10px; padding: 7px 9px; font-size: 11px; line-height: 1.3; box-shadow: var(--shadow); width: 100%; }
+.notif b { display: block; font-size: 11.5px; }
+.ctrl { display: flex; align-items: center; gap: 8px; }
+.ctrl[hidden] { display: none; }
+.ctrl .btn { cursor: pointer; }
+.ctrl .n { font-family: var(--font-mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 44px; }
+
+/* money */
+.money { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.money .figure { display: grid; gap: 8px; align-content: start; }
+.money h3 { font-size: 18px; }
+.money svg { width: 100%; height: auto; display: block; }
+@media (max-width: 980px) { .money { grid-template-columns: minmax(0, 1fr); } }
+footer { border-top: 1px solid var(--rule); padding-top: 14px; font-size: 12.5px; color: var(--muted); }
+
+#tip { position: fixed; z-index: 10; max-width: 300px; background: var(--ink); color: var(--bg); font-size: 12.5px; line-height: 1.4; padding: 8px 10px; border-radius: 8px; pointer-events: none; box-shadow: var(--shadow); }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition: none !important; animation: none !important; } }
+</style>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="head">
+    <span class="eyebrow">Business plan · Example region, 250,000 people, 31 towns</span>
+    <h1 class="mark"><span class="dot" aria-hidden="true"></span>peppermint</h1>
+    <p class="lede">What is going on in the region, in six minutes a morning. Reported from every town, owned by the region.</p>
+  </div>
+  <div class="kpis">
+    <div class="kpi" tabindex="0" data-tip="Year 3 revenue across ten lines, none of them display ads. Membership 468k, memorial pages 260k, business profiles 225k, Rathaus Pro 198k, sponsorship 190k, jobs 90k, events 90k, data 20k."><b>1.54M €</b><span>revenue, year 3</span></div>
+    <div class="kpi" tabindex="0" data-tip="6,000 paying members out of 120,000 households. Assumes 17 % of free accounts convert. At 10 %, break-even moves to year 4."><b>5 %</b><span>of households pay</span></div>
+    <div class="kpi" tabindex="0" data-tip="Losses of 649k in year 1 and 208k in year 2. Raise 1.2M €: 600k reader shares, 300k investing members, 300k development loan."><b>Year 3</b><span>break-even</span></div>
+  </div>
+</header>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">The research</span>
+    <h2>People stopped paying for the paper. They never stopped needing the town.</h2>
+  </div>
+  <div class="lists">
+    <div class="list out">
+      <div class="t"><h3>Why they stopped paying</h3><span class="count">71 reasons in the plan</span></div>
+      <div class="grp"><div class="chips">
+        <span class="chip" tabindex="0" data-tip="Flats, cars, jobs moved to Kleinanzeigen, ImmoScout, StepStone. Saturday's reason to buy the paper left.">Classifieds left</span></div></div>
+      <div class="grp"><div class="chips">
+        <span class="chip" tabindex="0" data-tip="Often 10 to 25 € a month after the trial. More than Netflix, fewer pages than before.">Costs more than Netflix</span></div></div>
+      <div class="grp"><div class="chips">
+        <span class="chip" tabindex="0" data-tip="Twenty years of cuts. Councils, courts and school boards go unwatched.">Fewer reporters</span></div></div>
+      <div class="grp"><div class="chips">
+        <span class="chip" tabindex="0" data-tip="An endless feed. You never know whether you have seen what matters today, so you never feel done.">No finished overview</span></div></div>
+    </div>
+    <div class="list in">
+      <div class="t"><h3>Why they still come</h3><span class="count">59 reasons in the plan</span></div>
+      <div class="grp"><div class="chips">
+        <span class="chip" tabindex="0" data-tip="The most common answer to &quot;why do you read the paper?&quot;. The whole picture, edited, and then it ends.">What is going on in the region</span>
+        <span class="chip" tabindex="0" data-tip="The bypass, the hospital, the school everyone's kids go to. The next village matters too.">The towns around</span></div></div>
+      <div class="grp"><div class="chips">
+        <span class="chip" tabindex="0" data-tip="Road works, detours, replacement buses, outages, waste collection changes, pharmacy on duty.">Closures and outages</span>
+        <span class="chip" tabindex="0" data-tip="Blue-light news is the most-read local category almost everywhere.">"What was that siren?"</span></div></div>
+      <div class="grp"><div class="chips">
+        <span class="chip" tabindex="0" data-tip="Who died, when the funeral is, where to send condolences. Still among the most loyal reasons to read.">Obituaries</span></div></div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">The insight</span>
+    <h2>The paper lost every cheap useful part. peppermint takes them back.</h2>
+  </div>
+  <div class="figure scroll">
+    <svg class="bundle" viewBox="0 0 760 272" role="img" aria-label="What the newspaper used to bundle, where each part went, and what peppermint rebuilds">
+      <g font-size="11" fill="var(--muted)" letter-spacing="1.2">
+        <text x="0" y="18">IN THE PAPER, 1995</text>
+        <text x="270" y="18">WHERE IT WENT</text>
+        <text x="530" y="18">PEPPERMINT</text>
+      </g>
+      <g font-size="14" fill="var(--ink)">
+        <g tabindex="0" data-tip="Classified line ads at the end of articles, booked self-serve by local shops. First-party text, survives ad blockers."><text x="0" y="56">Classified ads</text><path d="M150 52 H262" stroke="var(--rule)" stroke-width="1.5" fill="none"/><text x="270" y="56" fill="var(--muted)">Kleinanzeigen portals</text><path d="M430 52 H522" stroke="var(--accent)" stroke-width="1.5" fill="none"/><text x="530" y="56">One-line ads in articles</text></g>
+        <g tabindex="0" data-tip="149 € per listing, matched to town and topic. Year 3: 90k €."><text x="0" y="96">Job market</text><path d="M150 92 H262" stroke="var(--rule)" stroke-width="1.5" fill="none"/><text x="270" y="96" fill="var(--muted)">Job boards</text><path d="M430 92 H522" stroke="var(--accent)" stroke-width="1.5" fill="none"/><text x="530" y="96">Jobs by district</text></g>
+        <g tabindex="0" data-tip="Memorial page with condolence book, 149 to 399 €, sold through funeral homes. About 3,000 deaths a year in a region of 250,000; a 35 % share gives 260k €."><text x="0" y="136">Obituaries</text><path d="M150 132 H262" stroke="var(--rule)" stroke-width="1.5" fill="none"/><text x="270" y="136" fill="var(--muted)">Memorial portals</text><path d="M430 132 H522" stroke="var(--accent)" stroke-width="1.5" fill="none"/><text x="530" y="136">Memorial pages</text></g>
+        <g tabindex="0" data-tip="Moderated, real names, reporters answer in the thread. Members only, so it stays civil."><text x="0" y="176">Neighbour news</text><path d="M150 172 H262" stroke="var(--rule)" stroke-width="1.5" fill="none"/><text x="270" y="176" fill="var(--muted)">Facebook groups</text><path d="M430 172 H522" stroke="var(--accent)" stroke-width="1.5" fill="none"/><text x="530" y="176">Forum with real names</text></g>
+        <g tabindex="0" data-tip="Free with an account: everything that affects one address. Road works, building applications, outages, council decisions, police operations."><text x="0" y="216">Weather, duty doctor</text><path d="M150 212 H262" stroke="var(--rule)" stroke-width="1.5" fill="none"/><text x="270" y="216" fill="var(--muted)">Utility apps</text><path d="M430 212 H522" stroke="var(--accent)" stroke-width="1.5" fill="none"/><text x="530" y="216">My street alerts</text></g>
+        <g tabindex="0" data-tip="Nobody took the council report. Every meeting transcribed by AI, checked by a reporter, searchable by address. Members read it; professionals pay 59 € a month for alerts."><text x="0" y="256" font-weight="700">Council report</text><path d="M150 252 H262" stroke="var(--alert)" stroke-width="1.5" stroke-dasharray="4 4" fill="none"/><text x="270" y="256" fill="var(--alert)" font-weight="700">nobody</text><path d="M430 252 H522" stroke="var(--accent)" stroke-width="2.5" fill="none"/><text x="530" y="256" font-weight="700">Council tracker, Pro</text></g>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">The product, high fidelity</span>
+    <h2>Four screens a reader sees</h2>
+  </div>
+  <div class="screens">
+
+    <figure class="shot">
+      <div class="app" aria-label="Daily edition mockup">
+        <div class="bar"><span class="logo"><i></i>peppermint</span><span class="addr">Do, 8. Oktober</span></div>
+        <div class="body">
+          <div class="meet" tabindex="0" data-tip="Free for everyone, no account. Ranked by the editor on duty, never by an algorithm. Also by email at 6:00, as a 5-minute audio briefing, and as a printed weekly.">
+            <span class="mono kicker">Der Tag in der Region · 6:00</span>
+            <strong style="font-size:20px;line-height:1.15">Guten Morgen. Das ist heute los.</strong>
+            <span class="by"><span class="av">LB</span>12 Meldungen · 6 Minuten · Lena Brandt, Desk</span>
+          </div>
+          <ol class="ed">
+            <li tabindex="0" data-tip="Every summary is free. The full story behind it is for members: this is where the free overview turns into membership."><span class="mono kicker">Auenstadt</span><b>Hallenbad West öffnet erst 2028</b><span>Rat wählt Sanierung statt Neubau, spart 9 Mio. €.</span><em class="lock">ganzer Artikel für Mitglieder</em></li>
+            <li tabindex="0" data-tip="Reported by the correspondent for Kirchbach and Seeheim, edited by the desk. Members who choose Kirchbach as home town fund him directly."><span class="mono kicker">Kirchbach</span><b>Grundschule bekommt zwei Container-Klassen</b><span>Ab Januar, weil 38 Kinder mehr kommen als geplant.</span><span class="by"><span class="av">JA</span>Jonas Aydın, Korrespondent</span></li>
+            <li><span class="mono kicker">Gewerbegebiet West</span><b>Lagerhallenbrand gelöscht</b><span>Niemand verletzt, B12 seit 2 Uhr wieder frei.</span></li>
+            <li tabindex="0" data-tip="Good news counts. A doctor staying is as important to a village as a scandal."><span class="mono kicker">Lohfeld</span><b>Hausarztpraxis findet Nachfolgerin</b><span>Praxis Seidl bleibt offen, ab April mit Dr. Okafor.</span></li>
+            <li><span class="mono kicker">Seeheim</span><b>Ortsumfahrung: Klage abgewiesen</b><span>Bau kann 2027 beginnen.</span></li>
+          </ol>
+          <span class="fine">+ 7 weitere Meldungen</span>
+          <div class="end" tabindex="0" data-tip="The edition ends. No endless feed anywhere in the product: the reader knows when they are done.">Das war's für heute. Morgen ab 6 Uhr.</div>
+          <div class="row" tabindex="0" data-tip="Free account: alerts for one address. The edition is the habit; the street is the reason to sign in."><i class="c-acc"></i><span>Für Lindenweg 12: 2 neue Meldungen</span><em>ansehen</em></div>
+        </div>
+        <div class="tabs"><span class="on">Heute</span><span>Straße</span><span>Rat</span><span>Fragen</span><span>Ich</span></div>
+      </div>
+      <figcaption><b>Morning edition.</b> The whole region in six minutes, and then it ends.</figcaption>
+    </figure>
+
+    <figure class="shot">
+      <div class="app" aria-label="Article screen mockup">
+        <div class="bar"><span class="logo"><i></i>peppermint</span><span class="addr">Mitglied</span></div>
+        <div class="body art">
+          <span class="mono kicker">Rathaus · Analyse</span>
+          <h4>Warum das Hallenbad West erst 2028 öffnet</h4>
+          <span class="by" tabindex="0" data-tip="Every reporter has a face, a beat, a direct line and a public corrections log."><span class="av">MK</span>Mara Kessler, Rathaus und Planung · Durchwahl -214</span>
+          <div class="means" tabindex="0" data-tip="Every story opens with what it means for the reader. This box answers the reason people came, before the story itself.">
+            <span class="mono kicker">Was das für dich heißt</span>
+            <ul>
+              <li>Schulschwimmen bleibt bis 2028 im Südbad</li>
+              <li>Eintritt im Südbad steigt nicht</li>
+              <li>Bürgerversammlung 21.10., 19 Uhr, Aula Gymnasium West</li>
+            </ul>
+          </div>
+          <p class="prose">Der Stadtrat hat am Dienstag die Sanierung beschlossen, nicht den Neubau. Das spart 9 Millionen Euro, kostet aber zwei Jahre. Ein Gutachten von 2024 lag dem Rat seit Monaten vor.</p>
+          <div class="how" tabindex="0" data-tip="Sources visible on every story. Builds trust and shows the work readers pay for."><b>So wissen wir das</b>Ratsprotokoll 7.10. · Gutachten Bäderamt 2024 · Gespräch mit Bäderleitung</div>
+          <div class="ad" tabindex="0" data-tip="Classified line, booked self-serve. Plain first-party text, labelled, no tracking. Ad blockers have nothing to match; nobody writes a filter against the bakery."><span class="lbl">ANZEIGE</span><b>Bäckerei Huber,</b> Lindenweg 4: Brezn ab 6 Uhr, auch sonntags.</div>
+          <div class="funded" tabindex="0" data-tip="Members can direct part of their fee to a beat. Reporters see who funds them and report back."><b>312</b> Mitglieder finanzieren die Rathaus-Recherche.</div>
+          <div class="btns"><span class="btn primary">Frage an Mara</span><span class="btn" tabindex="0" data-tip="Members send five articles a month free to anyone. Every gift is a trial for a new reader.">Verschenken · 4 übrig</span></div>
+        </div>
+        <div class="tabs"><span class="on">Heute</span><span>Straße</span><span>Rat</span><span>Fragen</span><span>Ich</span></div>
+      </div>
+      <figcaption><b>Story.</b> What it means for you first, sources visible, one honest ad.</figcaption>
+    </figure>
+
+    <figure class="shot">
+      <div class="app" aria-label="Council tracker mockup">
+        <div class="bar"><span class="logo"><i></i>peppermint</span><span class="addr">Rat</span></div>
+        <div class="body">
+          <div class="meet" tabindex="0" data-tip="Livestream transcribed and summarised by AI, every summary checked by a reporter before it goes out. Meetings without a stream: paid local Documenters, about 50 € a meeting."><strong>Stadtrat, 7. Oktober 2026</strong><small>3 h 12 min · transkribiert · geprüft von M. Kessler</small></div>
+          <div class="top mine" tabindex="0" data-tip="Matched to the reader's address. The thing they would never have found in a 400-page council PDF.">
+            <div class="t"><b>TOP 7 · Tempo 30 vor Grundschule Lindenweg</b><span class="pill p-acc">deine Adresse</span></div>
+            <div class="vote" aria-hidden="true"><span class="y" style="width:72%"></span><span class="n" style="width:28%"></span></div>
+            <span class="vtxt">beschlossen · 23 ja · 9 nein</span>
+          </div>
+          <div class="top">
+            <div class="t"><b>TOP 4 · Hallenbad West: Sanierung statt Neubau</b><span class="pill p-ok">beschlossen</span></div>
+            <div class="vote" aria-hidden="true"><span class="y" style="width:60%"></span><span class="n" style="width:34%"></span><span class="a" style="width:6%"></span></div>
+            <span class="vtxt">31 ja · 17 nein · 3 Enthaltungen</span>
+          </div>
+          <div class="top">
+            <div class="t"><b>TOP 9 · Grundsteuer-Hebesatz 2027</b><span class="pill p-warn">vertagt</span></div>
+            <span class="vtxt">nächste Sitzung 4.11.</span>
+          </div>
+          <div class="quote" tabindex="0" data-tip="Every summary links to the exact minute in the transcript. Readers can check the machine."><span class="mono">01:42:10 · Kämmerer</span>„Ohne Erhöhung fehlen 2027 rund 4 Millionen.“</div>
+          <div class="search"><span>Im Protokoll suchen</span><span class="mono">⌘K</span></div>
+          <span class="btn" tabindex="0" data-tip="Keyword and address alerts. One is free; unlimited alerts, tenders and the commercial register are Rathaus Pro.">Alarm anlegen: „Lindenweg“</span>
+        </div>
+        <div class="tabs"><span>Heute</span><span>Straße</span><span class="on">Rat</span><span>Fragen</span><span>Ich</span></div>
+      </div>
+      <figcaption><b>Council.</b> Every meeting, by address, checked by a human.</figcaption>
+    </figure>
+
+    <figure class="shot">
+      <div class="app" aria-label="Membership screen mockup">
+        <div class="bar"><span class="logo"><i></i>peppermint</span><span class="addr">Ich</span></div>
+        <div class="body">
+          <p class="fine" tabindex="0" data-tip="The overview, safety, health, elections and siren answers stay free for everyone, without an account.">Der Tag in der Region bleibt immer frei.</p>
+          <div class="tier" tabindex="0" data-tip="Target: 36,000 accounts, 30 % of households, in year 3.">
+            <div class="t"><b>Konto</b><span class="price">0 €</span></div>
+            <ul><li>Meine Straße für 1 Adresse</li><li>5 ganze Artikel im Monat</li></ul>
+          </div>
+          <div class="tier best" tabindex="0" data-tip="Blended 6.50 € across tiers. 6,000 members in year 3 = 468k €. Priced against streaming, not against the old print price.">
+            <div class="t"><b>Mitglied</b><span class="price">6 € / Monat</span></div>
+            <ul><li>Alle ganzen Artikel, ohne Werbung</li><li>Heimatort-Teil, 3 Adressen</li><li>Archiv, Forum, Abende, Geschenk-Artikel</li></ul>
+          </div>
+          <div class="minis">
+            <span class="mini" tabindex="0" data-tip="Two adults, two logins."><b>9 €</b>Familie</span>
+            <span class="mini" tabindex="0" data-tip="Pay what you want from 12 €. Supporters fund the reduced tier."><b>12 €+</b>Förderer</span>
+            <span class="mini" tabindex="0" data-tip="Students, pensioners, anyone who asks. No proof required."><b>2 €</b>ermäßigt</span>
+          </div>
+          <div class="block" tabindex="0" data-tip="35 % of the fee of every member who chose a correspondent's town goes to that correspondent. City members' full fee stays with the core newsroom.">
+            <span class="mono">Dein Heimatort: Kirchbach</span>
+            <div class="split" aria-hidden="true"><span class="c-ok" style="width:35%"></span><span class="c-acc" style="width:65%"></span></div>
+            <div class="legend"><span><i class="c-ok"></i>2,10 € an Jonas Aydın</span><span><i class="c-acc"></i>3,90 € Redaktion und Betrieb</span></div>
+          </div>
+          <div class="tier" tabindex="0" data-tip="Cooperative share, separate from the membership. One co-owner, one vote, however many shares. Dividend capped at 2 %.">
+            <div class="t"><b>Miteigentümer werden</b><span class="price">100 €</span></div>
+            <ul><li>Ein Anteil, eine Stimme</li><li>peppermint kann nie verkauft werden</li></ul>
+          </div>
+          <p class="fine" tabindex="0" data-tip="Cancel in two clicks, pause instead of cancel, no price jump after a trial.">Monatlich kündbar mit zwei Klicks. Kein Lockpreis.</p>
+        </div>
+        <div class="tabs"><span>Heute</span><span>Straße</span><span>Rat</span><span>Fragen</span><span class="on">Ich</span></div>
+      </div>
+      <figcaption><b>Membership.</b> Your fee follows your town; your share makes you an owner.</figcaption>
+    </figure>
+
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Who reports</span>
+    <h2>Every town covered, one desk answers for it</h2>
+  </div>
+  <div class="figure scroll">
+    <svg class="flow" viewBox="0 0 760 290" role="img" aria-label="Five sources feed one editing desk, which publishes the free daily edition, street alerts and full stories for members">
+      <g fill="none" stroke="var(--rule)" stroke-width="1.5">
+        <path d="M230 30 C270 30 270 145 300 145"/><path d="M230 86 C270 86 270 145 300 145"/><path d="M230 142 H300"/><path d="M230 198 C270 198 270 145 300 145"/><path d="M230 254 C270 254 270 145 300 145"/>
+      </g>
+      <g fill="none" stroke="var(--accent)" stroke-width="2">
+        <path d="M470 145 C505 145 505 52 540 52"/><path d="M470 145 H540"/><path d="M470 145 C505 145 505 238 540 238"/>
+      </g>
+      <g font-size="13">
+        <g tabindex="0" data-tip="Editor in chief plus 6 in year 3. The city, the daily edition, investigations, verification. Salaried at or above the regional collective agreement."><rect x="0" y="10" width="230" height="40" rx="8" fill="var(--surface-2)"/><text x="12" y="35" font-weight="700" fill="var(--ink)">Core newsroom · 7</text></g>
+        <g tabindex="0" data-tip="12 correspondents, each covering 2 to 3 of the 30 towns, 12 to 15 hours a week. Retainer 1,000 € a month, plus 35 % of the fee of members in their towns, plus 20 % of business profiles they sign. About 19k € a year in year 3."><rect x="0" y="66" width="230" height="40" rx="8" fill="var(--ok-soft)"/><text x="12" y="91" font-weight="700" fill="var(--ink)">Correspondents · 12</text></g>
+        <g tabindex="0" data-tip="About 40 residents, around 50 € per meeting, structured notes for meetings without a livestream."><rect x="0" y="122" width="230" height="40" rx="8" fill="var(--surface-2)"/><text x="12" y="147" font-weight="700" fill="var(--ink)">Meeting watchers · 40</text></g>
+        <g tabindex="0" data-tip="Clubs, schools, parishes, city halls post their own announcements. Free, labelled &quot;Mitteilung&quot;, visibly separate from reporting."><rect x="0" y="178" width="230" height="40" rx="8" fill="var(--surface-2)"/><text x="12" y="203" font-weight="700" fill="var(--ink)">Clubs, schools, city halls</text></g>
+        <g tabindex="0" data-tip="Building applications, council agendas, police and fire reports, outages, tenders, court lists. Automated intake; a human checks before anything is published."><rect x="0" y="234" width="230" height="40" rx="8" fill="var(--surface-2)"/><text x="12" y="259" font-weight="700" fill="var(--ink)">Public data · 20 to 30 feeds</text></g>
+        <g tabindex="0" data-tip="Every story is edited before it runs. The desk ranks the daily edition and carries legal responsibility under press law, which a platform of independent creators cannot."><rect x="300" y="95" width="170" height="100" rx="10" fill="var(--accent)"/><text x="385" y="135" text-anchor="middle" font-weight="700" font-size="15" fill="var(--on-accent)">Editing desk</text><text x="385" y="155" text-anchor="middle" font-size="11.5" fill="var(--on-accent)">checks, edits, ranks</text><text x="385" y="171" text-anchor="middle" font-size="11.5" fill="var(--on-accent)">answers for every story</text></g>
+        <g tabindex="0" data-tip="Free, no account. 6:00, 10 to 15 items, every town when something happened there. Ends with &quot;Das war's für heute&quot;."><rect x="540" y="28" width="220" height="48" rx="8" fill="var(--accent-soft)"/><text x="552" y="48" font-weight="700" fill="var(--ink)">Der Tag in der Region</text><text x="552" y="65" font-size="11.5" fill="var(--muted)">free · 6:00 · it ends</text></g>
+        <g tabindex="0" data-tip="Free with an account: one address, road works, building applications, outages, council items, siren answers."><rect x="540" y="121" width="220" height="48" rx="8" fill="var(--accent-soft)"/><text x="552" y="141" font-weight="700" fill="var(--ink)">Street alerts</text><text x="552" y="158" font-size="11.5" fill="var(--muted)">free account</text></g>
+        <g tabindex="0" data-tip="Members: every full story, the home town section, archive, forum, no ads."><rect x="540" y="214" width="220" height="48" rx="8" fill="var(--accent-soft)"/><text x="552" y="234" font-weight="700" fill="var(--ink)">Full stories, home town</text><text x="552" y="251" font-size="11.5" fill="var(--muted)">members</text></g>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Rathaus Pro · 59 € a month per seat</span>
+    <h2>The professional desk pays for the newsroom's data work</h2>
+  </div>
+  <div class="scroll">
+    <div class="pro" aria-label="Rathaus Pro desktop mockup">
+      <div class="side">
+        <span class="logo"><i></i>peppermint <span class="mono" style="color:var(--accent)">Pro</span></span>
+        <div class="block"><span class="mono" style="color:var(--muted)">Beobachtet</span>
+          <ul>
+            <li class="on">Lindenweg + 500 m <em>4</em></li>
+            <li>Gewerbegebiet West <em>2</em></li>
+            <li>Stichwort „Kita“ <em>1</em></li>
+            <li>Ausschreibungen Tiefbau <em>3</em></li>
+            <li>B-Plan 112 „Am Mühlbach“ <em>1</em></li>
+          </ul></div>
+        <span class="fine">Kanzlei Brandl &amp; Partner · 3 Plätze</span>
+      </div>
+      <div class="main">
+        <div class="t"><h4>Lindenweg + 500 m</h4><span class="mono" style="color:var(--muted)">Export CSV · Wöchentlich per Mail</span></div>
+        <table>
+          <thead><tr><th>Datum</th><th>Quelle</th><th>Vorgang</th><th>Abstand</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr class="hl" tabindex="0" data-tip="Council agenda item matched by address. Linked to the transcript minute and the vote."><td>07.10.</td><td>Stadtrat</td><td>TOP 7 Tempo 30 Lindenweg<small>Verkehrsführung ab März 2027</small></td><td>0 m</td><td><span class="pill p-ok">beschlossen</span></td></tr>
+            <tr tabindex="0" data-tip="Building application register. An agent sees it the day it is filed, not when the crane arrives."><td>06.10.</td><td>Bauantrag</td><td>4 Reihenhäuser, Ahornstraße 3<small>Einwendungen bis 03.11.</small></td><td>180 m</td><td><span class="pill p-warn">offen</span></td></tr>
+            <tr tabindex="0" data-tip="Draft development plan on public display. Neighbours and investors both want to know early."><td>30.09.</td><td>Bauausschuss</td><td>B-Plan 112 „Am Mühlbach“, Entwurf<small>öffentlich ausgelegt</small></td><td>420 m</td><td><span class="pill p-warn">Auslegung</span></td></tr>
+            <tr tabindex="0" data-tip="Commercial register entry. New company in the area, often the first sign of a project."><td>03.10.</td><td>Handelsregister</td><td>Weststadt Logistik GmbH, Neueintragung<small>Sitz Gewerbegebiet West</small></td><td>480 m</td><td><span class="pill p-acc">neu</span></td></tr>
+            <tr tabindex="0" data-tip="Public tender. Local trades get a heads-up with deadline."><td>01.10.</td><td>Ausschreibung</td><td>Kanalsanierung Lindenweg, Los 3<small>Frist 28.10.</small></td><td>0 m</td><td><span class="pill p-warn">Frist</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="aside">
+        <span class="mono" style="color:var(--muted)">Wer zahlt</span>
+        <div class="row"><i class="c-acc"></i><span>Makler, Architekten</span><em>125</em></div>
+        <div class="row"><i class="c-ok"></i><span>Kanzleien, Steuerbüros</span><em>65</em></div>
+        <div class="row"><i class="c-warn"></i><span>Handwerk, Bau</span><em>50</em></div>
+        <div class="row"><i class="c-alert"></i><span>Parteien, Verbände</span><em>40</em></div>
+        <p class="fine" tabindex="0" data-tip="280 seats × 59 € × 12 = 198k € in year 3. Validate with 20 paid pilots before scaling sales.">Plan Jahr 3: 280 Plätze, 198.000 €</p>
+        <p class="fine">Die Redaktion sieht dieselben Daten. Pro zahlt den Datenapparat, die Recherche bleibt frei von Kunden.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="siren">
+  <div class="head">
+    <span class="eyebrow">One evening, step by step</span>
+    <h2>21:04, sirens in Weststadt</h2>
+  </div>
+  <div class="ctrl" hidden>
+    <button class="btn" type="button" data-act="prev" aria-label="Previous step">Zurück</button>
+    <button class="btn primary" type="button" data-act="play">Abspielen</button>
+    <button class="btn" type="button" data-act="next" aria-label="Next step">Weiter</button>
+    <span class="n" aria-live="polite">1 / 6</span>
+  </div>
+  <div class="scroll">
+    <ol class="steps" style="list-style:none;margin:0;padding:0">
+      <li class="step on">
+        <span class="time">21:04</span>
+        <div class="vis"><svg viewBox="0 0 160 76" aria-hidden="true"><g fill="none" stroke="var(--alert)" stroke-width="2"><path d="M80 20 a20 20 0 0 1 0 40"/><path d="M80 10 a30 30 0 0 1 0 60" opacity=".6"/><path d="M80 0 a40 40 0 0 1 0 80" opacity=".3"/></g><circle cx="74" cy="40" r="7" fill="var(--alert)"/></svg></div>
+        <p tabindex="0" data-tip="14 questions in the app's 'Was war das?' tab within five minutes, all within 1.5 km.">Sirens. 14 readers ask "Was war das?".</p>
+      </li>
+      <li class="step">
+        <span class="time">21:09</span>
+        <div class="vis"><div class="notif"><b>Leitstelle bestätigt</b>Brand Lagerhalle, Gewerbegebiet West</div></div>
+        <p tabindex="0" data-tip="The blue-light reporter on call phones the fire control centre. A verified answer beats the Facebook group on accuracy, and nearly on speed.">Reporter calls fire control.</p>
+      </li>
+      <li class="step">
+        <span class="time">21:16</span>
+        <div class="vis"><svg viewBox="0 0 160 76" aria-hidden="true"><circle cx="80" cy="38" r="34" fill="var(--accent)" fill-opacity=".1" stroke="var(--accent)" stroke-dasharray="3 3"/><circle cx="80" cy="38" r="5" fill="var(--alert)"/><g fill="var(--accent)"><circle cx="60" cy="24" r="3"/><circle cx="102" cy="30" r="3"/><circle cx="92" cy="56" r="3"/><circle cx="64" cy="50" r="3"/><circle cx="84" cy="16" r="3"/></g><g fill="var(--rule)"><circle cx="18" cy="20" r="3"/><circle cx="142" cy="60" r="3"/><circle cx="140" cy="14" r="3"/></g></svg></div>
+        <p tabindex="0" data-tip="Push to accounts within 1 km only. Nobody across town gets woken up for a fire they cannot smell.">Push to 1 km only.</p>
+      </li>
+      <li class="step">
+        <span class="time">21:40</span>
+        <div class="vis"><div class="notif"><b>Update · B12 gesperrt</b>Umleitung über Ringstraße.</div></div>
+        <p tabindex="0" data-tip="Each update edits the same live card. No ten-story stream for one fire.">Update: smoke drifts east, road closed.</p>
+      </li>
+      <li class="step">
+        <span class="time">Mi 07:00</span>
+        <div class="vis"><div class="notif"><b>Mitglieder · Hintergrund</b>Die Halle hatte zwei offene Brandschutzmängel.</div></div>
+        <p tabindex="0" data-tip="The building file shows two open fire-safety defects since 2025. The free alert brought people in; the reporting behind it is what members pay for.">Next morning: the members' story.</p>
+      </li>
+      <li class="step">
+        <span class="time">+3 Tage</span>
+        <div class="vis"><svg viewBox="0 0 160 76" aria-hidden="true"><g font-size="22" font-weight="700" fill="var(--ink)"><text x="10" y="38">+41</text><text x="92" y="38" fill="var(--ok)">+6</text></g><g font-size="10" fill="var(--muted)"><text x="10" y="58">accounts</text><text x="92" y="58">members</text></g></svg></div>
+        <p tabindex="0" data-tip="Illustrative numbers for one event. The model needs about 50 such moments a year per district to reach the account target.">41 new accounts, 6 new members.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">The money</span>
+    <h2>Ten small revenue lines, no banner ads</h2>
+  </div>
+  <div class="money">
+    <div class="figure">
+      <h3>Funnel, year 3</h3>
+      <svg viewBox="0 0 320 196" role="img" aria-label="Funnel: 120,000 households, 72,000 reached monthly, 36,000 accounts, 6,000 members">
+        <g font-size="12" fill="var(--ink)">
+          <g tabindex="0" data-tip="All households in a region of 250,000: the city plus 30 towns."><rect x="0" y="8" width="320" height="34" rx="4" fill="var(--surface-2)"/><text x="10" y="30">120,000 households</text></g>
+          <g tabindex="0" data-tip="60 % monthly reach, carried by the free daily edition. If the edition misses this, nothing downstream works."><rect x="0" y="54" width="192" height="34" rx="4" fill="var(--accent-soft)"/><text x="10" y="76">72,000 reached</text></g>
+          <g tabindex="0" data-tip="30 % of households get the edition by email or street alerts. Test in the city plus five towns first."><rect x="0" y="100" width="96" height="34" rx="4" fill="var(--accent)" fill-opacity=".55"/><text x="104" y="122">36,000 accounts</text></g>
+          <g tabindex="0" data-tip="17 % of accounts pay; 40 % of them live in the towns and fund their correspondent. At 10 %, membership drops 190k € and break-even slips a year."><rect x="0" y="146" width="16" height="34" rx="4" fill="var(--accent)"/><text x="24" y="168" font-weight="700">6,000 members</text></g>
+        </g>
+      </svg>
+    </div>
+    <div class="figure">
+      <h3 tabindex="0" data-tip="Membership is under a third. Grants and the B2B software option are not in the base case. Total 1,541k €.">Revenue mix, year 3 (k €)</h3>
+      <svg viewBox="0 0 320 214" role="img" aria-label="Revenue by line in year 3">
+        <g font-size="11.5" fill="var(--ink)">
+          <text x="0" y="16">Membership</text><rect x="118" y="5" width="168" height="14" rx="2" fill="var(--accent)"/><text x="290" y="16" fill="var(--muted)">468</text>
+          <text x="0" y="42">Memorial pages</text><rect x="118" y="31" width="93" height="14" rx="2" fill="var(--accent)" fill-opacity="0.7"/><text x="215" y="42" fill="var(--muted)">260</text>
+          <text x="0" y="68">Business profiles</text><rect x="118" y="57" width="81" height="14" rx="2" fill="var(--accent)" fill-opacity="0.7"/><text x="203" y="68" fill="var(--muted)">225</text>
+          <text x="0" y="94">Rathaus Pro</text><rect x="118" y="83" width="71" height="14" rx="2" fill="var(--accent)" fill-opacity="0.7"/><text x="193" y="94" fill="var(--muted)">198</text>
+          <text x="0" y="120">Sponsorship</text><rect x="118" y="109" width="68" height="14" rx="2" fill="var(--accent)" fill-opacity="0.5"/><text x="190" y="120" fill="var(--muted)">190</text>
+          <text x="0" y="146">Jobs</text><rect x="118" y="135" width="32" height="14" rx="2" fill="var(--accent)" fill-opacity="0.5"/><text x="154" y="146" fill="var(--muted)">90</text>
+          <text x="0" y="172">Events</text><rect x="118" y="161" width="32" height="14" rx="2" fill="var(--accent)" fill-opacity="0.5"/><text x="154" y="172" fill="var(--muted)">90</text>
+          <text x="0" y="198">Data licensing</text><rect x="118" y="187" width="7" height="14" rx="2" fill="var(--accent)" fill-opacity="0.35"/><text x="129" y="198" fill="var(--muted)">20</text>
+        </g>
+      </svg>
+          </div>
+    <div class="figure">
+      <h3>Revenue against cost (k €)</h3>
+      <svg viewBox="0 0 320 236" role="img" aria-label="Revenue and cost by year: year 1 335 against 984, year 2 930 against 1138, year 3 1541 against 1288">
+        <g stroke="var(--rule)" stroke-width="1"><path d="M34 200 H316"/><path d="M34 143.8 H316" stroke-dasharray="3 3"/><path d="M34 87.5 H316" stroke-dasharray="3 3"/><path d="M34 31.2 H316" stroke-dasharray="3 3"/></g>
+        <g font-size="10" fill="var(--muted)" text-anchor="end"><text x="30" y="203">0</text><text x="30" y="146.8">500</text><text x="30" y="90.5">1000</text><text x="30" y="34.2">1500</text></g>
+        <g tabindex="0" data-tip="Year 1: 335k revenue, 984k cost, result -649k. City plus five towns, 6 correspondents."><rect x="48" y="162.3" width="34" height="37.7" fill="var(--accent)"/><rect x="86" y="89.3" width="34" height="110.7" fill="var(--rule)"/><text x="84" y="84.3" font-size="11" fill="var(--alert)" text-anchor="middle" font-weight="700">-649</text></g>
+        <g tabindex="0" data-tip="Year 2: 930k revenue, 1,138k cost, result -208k. 10 correspondents."><rect x="140" y="95.4" width="34" height="104.6" fill="var(--accent)"/><rect x="178" y="72.0" width="34" height="128.0" fill="var(--rule)"/><text x="176" y="67.0" font-size="11" fill="var(--alert)" text-anchor="middle" font-weight="700">-208</text></g>
+        <g tabindex="0" data-tip="Year 3: 1,541k revenue, 1,288k cost, operating result +253k. 12 correspondents cover all 30 towns."><rect x="232" y="26.6" width="34" height="173.4" fill="var(--accent)"/><rect x="270" y="55.1" width="34" height="144.9" fill="var(--rule)"/><text x="268" y="21.6" font-size="11" fill="var(--ok)" text-anchor="middle" font-weight="700">+253</text></g>
+        <g font-size="11" fill="var(--ink)" text-anchor="middle"><text x="84" y="218">Year 1</text><text x="176" y="218">Year 2</text><text x="268" y="218">Year 3</text></g>
+        <g font-size="10" fill="var(--muted)"><rect x="34" y="226" width="8" height="8" fill="var(--accent)"/><text x="46" y="234">revenue</text><rect x="100" y="226" width="8" height="8" fill="var(--rule)"/><text x="112" y="234">cost</text></g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="head">
+    <span class="eyebrow">Ownership and profit</span>
+    <h2>Owned by the region, never for sale</h2>
+  </div>
+  <div class="own">
+    <div class="figure">
+      <h3>A cooperative with three kinds of co-owners</h3>
+      <svg viewBox="0 0 520 300" role="img" aria-label="Readers, staff and correspondents, and investing members form the general assembly, which elects the supervisory board; an editorial statute shields the newsroom">
+        <g fill="none" stroke="var(--rule)" stroke-width="1.5"><path d="M80 62 V96 H260 V112"/><path d="M260 62 V112"/><path d="M440 62 V96 H260"/><path d="M260 156 V178"/><path d="M260 222 V244"/></g>
+        <g font-size="12.5">
+          <g tabindex="0" data-tip="3,000 reader co-owners at launch, shares from 100 €. Separate from the 6 € membership: anyone can be both."><rect x="0" y="10" width="160" height="52" rx="8" fill="var(--accent-soft)"/><text x="80" y="41" text-anchor="middle" font-weight="700" fill="var(--ink)">Readers</text></g>
+          <g tabindex="0" data-tip="Everyone who works there, staff and correspondents, owns a share and votes."><rect x="180" y="10" width="160" height="52" rx="8" fill="var(--ok-soft)"/><text x="260" y="41" text-anchor="middle" font-weight="700" fill="var(--ink)">Staff, correspondents</text></g>
+          <g tabindex="0" data-tip="Local businesses, angels, foundations. They bring 300k € of capital; their votes are capped by statute, so money cannot buy control."><rect x="360" y="10" width="160" height="52" rx="8" fill="var(--warn-soft)"/><text x="440" y="41" text-anchor="middle" font-weight="700" fill="var(--ink)">Investing members</text></g>
+          <g tabindex="0" data-tip="One co-owner, one vote, however many shares. Dissolving or converting the cooperative needs the assembly; there is no owner who can sell."><rect x="140" y="112" width="240" height="44" rx="8" fill="var(--surface-2)"/><text x="260" y="139" text-anchor="middle" font-weight="700" fill="var(--ink)">General assembly</text></g>
+          <g tabindex="0" data-tip="Six seats: three elected by readers, two by staff, one by correspondents. Appoints and controls the management board."><rect x="140" y="178" width="240" height="44" rx="8" fill="var(--surface-2)"/><text x="260" y="197" text-anchor="middle" font-weight="700" fill="var(--ink)">Supervisory board</text><text x="260" y="213" text-anchor="middle" font-size="11" fill="var(--muted)">3 readers · 2 staff · 1 correspondent</text></g>
+          <g tabindex="0" data-tip="Runs the business: product, sales, finance. Cannot instruct the newsroom."><rect x="140" y="244" width="240" height="44" rx="8" fill="var(--accent)"/><text x="260" y="271" text-anchor="middle" font-weight="700" fill="var(--on-accent)">Management</text></g>
+          <g tabindex="0" data-tip="The newsroom confirms the editor in chief with a two-thirds vote. No co-owner, board, sponsor or business customer may instruct coverage. The statute changes only with the newsroom's consent."><rect x="400" y="178" width="120" height="110" rx="8" fill="none" stroke="var(--alert)" stroke-dasharray="4 3"/><text x="460" y="214" text-anchor="middle" font-weight="700" fill="var(--ink)">Newsroom</text><text x="460" y="232" text-anchor="middle" font-size="11" fill="var(--muted)">editorial statute:</text><text x="460" y="248" text-anchor="middle" font-size="11" fill="var(--muted)">nobody instructs</text><text x="460" y="264" text-anchor="middle" font-size="11" fill="var(--muted)">coverage</text></g>
+        </g>
+      </svg>
+    </div>
+    <div class="figure">
+      <h3 tabindex="0" data-tip="Nobody is paid by clicks. The correspondent share follows the home town members choose; the profit pool follows hours worked.">Where the money goes, year 3 (k €)</h3>
+      <svg viewBox="0 0 520 196" role="img" aria-label="Costs of 1,288k split by who is paid, then the operating profit of 253k split into profit pool, reserve, dividend and reinvestment">
+        <g font-size="12" fill="var(--ink)">
+          <text x="20" y="20" font-weight="700">Costs 1,288: who gets paid</text>
+          <g tabindex="0" data-tip="Core newsroom, 7 people: 490k €."><rect x="20" y="30" width="182.6" height="22" fill="var(--accent)" fill-opacity="1"/></g><g tabindex="0" data-tip="Correspondents: 144k retainers, 66k member share, 18k business commission. About 19k € each for a part-time role."><rect x="202.6" y="30" width="85.0" height="22" fill="var(--ok)" fill-opacity="1"/></g><g tabindex="0" data-tip="Meeting watchers, about 50 € per meeting: 35k €."><rect x="287.6" y="30" width="13.0" height="22" fill="var(--ok)" fill-opacity="0.5"/></g><g tabindex="0" data-tip="Product, engineering, infrastructure, AI: 220k €."><rect x="300.6" y="30" width="82.0" height="22" fill="var(--muted)" fill-opacity="0.5"/></g><g tabindex="0" data-tip="Sales, community, marketing: 240k €."><rect x="382.6" y="30" width="89.4" height="22" fill="var(--warn)" fill-opacity="0.7"/></g><g tabindex="0" data-tip="Office, legal, accounting, cooperative audit: 75k €."><rect x="472.0" y="30" width="28.0" height="22" fill="var(--muted)" fill-opacity="0.25"/></g>
+          <g font-size="11" fill="var(--muted)"><rect x="20" y="61" width="9" height="9" fill="var(--accent)" fill-opacity="1"/><text x="34" y="70">Newsroom 490</text><rect x="180" y="61" width="9" height="9" fill="var(--ok)" fill-opacity="1"/><text x="194" y="70">Correspondents 228</text><rect x="340" y="61" width="9" height="9" fill="var(--ok)" fill-opacity="0.5"/><text x="354" y="70">Watchers 35</text><rect x="20" y="81" width="9" height="9" fill="var(--muted)" fill-opacity="0.5"/><text x="34" y="90">Product 220</text><rect x="180" y="81" width="9" height="9" fill="var(--warn)" fill-opacity="0.7"/><text x="194" y="90">Readers, sales 240</text><rect x="340" y="81" width="9" height="9" fill="var(--muted)" fill-opacity="0.25"/><text x="354" y="90">Admin 75</text></g>
+          <text x="20" y="132" font-weight="700">Operating profit 253: in this order</text>
+          <g tabindex="0" data-tip="10 % to everyone who works there, staff and correspondents, split by hours worked: 25k €."><rect x="20" y="142" width="47.4" height="22" fill="var(--ok)" fill-opacity="1"/></g><g tabindex="0" data-tip="20 % statutory reserve, required for a cooperative: 51k €."><rect x="67.4" y="142" width="96.8" height="22" fill="var(--muted)" fill-opacity="0.5"/></g><g tabindex="0" data-tip="Dividend capped at 2 % on 600k € of reader shares: 12k €."><rect x="164.2" y="142" width="22.8" height="22" fill="var(--warn)" fill-opacity="1"/></g><g tabindex="0" data-tip="The rest goes into new correspondents, new towns and investigations: 165k €."><rect x="187.0" y="142" width="313.0" height="22" fill="var(--accent)" fill-opacity="1"/></g>
+          <g font-size="11" fill="var(--muted)"><text x="20" y="182">Pool 25</text><text x="80" y="182">Reserve 51</text><text x="175" y="182">Dividend 12</text><text x="200" y="182">Reinvested 165</text></g>
+        </g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<footer>All figures are planning assumptions. Full plan: business-plan.md.</footer>
+</div>
+
+<script>
+(function () {
+  document.documentElement.classList.add("js");
+  var tip = document.createElement("div");
+  tip.id = "tip"; tip.hidden = true; tip.setAttribute("role", "tooltip");
+  document.body.appendChild(tip);
+  function show(el) {
+    tip.textContent = el.getAttribute("data-tip");
+    tip.hidden = false;
+    var r = el.getBoundingClientRect(), w = tip.offsetWidth, h = tip.offsetHeight;
+    var x = Math.min(Math.max(8, r.left + r.width / 2 - w / 2), window.innerWidth - w - 8);
+    var y = r.top - h - 8;
+    if (y < 8) y = r.bottom + 8;
+    tip.style.left = x + "px"; tip.style.top = y + "px";
+  }
+  function hide() { tip.hidden = true; }
+  document.addEventListener("mouseover", function (e) { var el = e.target.closest && e.target.closest("[data-tip]"); if (el) show(el); else hide(); });
+  document.addEventListener("focusin", function (e) { var el = e.target.closest && e.target.closest("[data-tip]"); if (el) show(el); });
+  document.addEventListener("focusout", hide);
+  window.addEventListener("scroll", hide, { passive: true });
+
+  var root = document.getElementById("siren");
+  var steps = root.querySelectorAll(".step");
+  var ctrl = root.querySelector(".ctrl");
+  var count = ctrl.querySelector(".n");
+  var playBtn = ctrl.querySelector('[data-act="play"]');
+  var i = 0, timer = null;
+  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  ctrl.hidden = false;
+  function go(n) {
+    i = (n + steps.length) % steps.length;
+    steps.forEach(function (s, k) { s.classList.toggle("on", k === i); });
+    count.textContent = (i + 1) + " / " + steps.length;
+    var sc = steps[i].closest(".scroll");
+    if (sc) sc.scrollTo({ left: Math.max(0, steps[i].offsetLeft - 16), behavior: reduce ? "auto" : "smooth" });
+  }
+  function stop() { clearInterval(timer); timer = null; playBtn.textContent = "Abspielen"; }
+  function play() {
+    if (timer) { stop(); return; }
+    if (i === steps.length - 1) go(0);
+    playBtn.textContent = "Pause";
+    timer = setInterval(function () { if (i === steps.length - 1) { stop(); return; } go(i + 1); }, 1800);
+  }
+  ctrl.addEventListener("click", function (e) {
+    var act = e.target.getAttribute("data-act");
+    if (act === "prev") { stop(); go(i - 1); }
+    if (act === "next") { stop(); go(i + 1); }
+    if (act === "play") play();
+  });
+  if (!reduce && "IntersectionObserver" in window) {
+    var io = new IntersectionObserver(function (en) {
+      if (en[0].isIntersecting) { io.disconnect(); go(0); play(); }
+    }, { threshold: 0.6 });
+    io.observe(root);
+  }
+})();
+</script>

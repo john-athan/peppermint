@@ -1,0 +1,73 @@
+// Owned by oss-kit (templates/shared/accounts). Change it there and run `oss sync-tooling`, never in a copy.
+//
+// Every sentence the accounts module can say, in German and English. The app picks one language in its config.
+// A sentence is written for the person in front of the screen: what happened, and what to do now.
+
+export type Lang = "de" | "en";
+
+export const MESSAGES = {
+  de: {
+    keyType: "Dieser Schlüsseltyp wird nicht unterstützt.",
+    badCredential: "Ungültige Anmeldedaten.",
+    wrongOrigin: "Die Herkunft stimmt nicht.",
+    wrongRp: "Die Domain stimmt nicht.",
+    notConfirmed: "Der Passkey wurde nicht bestätigt.",
+    needsUv: "Der Passkey braucht Gesichts-, Fingerabdruck- oder PIN-Bestätigung.",
+    unknownPasskey: "Diesen Passkey kenne ich nicht.",
+    badSignature: "Die Signatur ist ungültig.",
+    cloned: "Dieser Passkey wirkt kopiert und wurde abgelehnt.",
+    expiredCeremony: "Die Anmeldung ist abgelaufen. Versuche es noch einmal.",
+    setupClosed: "Die Einrichtung ist geschlossen.",
+    linkGone: "Dieser Link ist abgelaufen oder schon benutzt. Bitte um einen neuen.",
+    alreadyRegistered: "Dieser Passkey ist hier schon angelegt.",
+    signIn: "Du bist nicht angemeldet.",
+    forbidden: "Das ist nicht erlaubt.",
+    adminOnly: "Das darf nur, wer hier verwaltet.",
+    lastPasskey: "Der letzte Passkey kann nicht gelöscht werden.",
+    lastAdmin: "Hier muss immer jemand verwalten. Gib die Verwaltung erst einer anderen Person.",
+    notFound: "Das gibt es nicht (mehr).",
+    noSuchMember: "Diese Person gibt es hier nicht.",
+    nameMissing: "Der Name fehlt.",
+    nameTaken: "Diesen Namen gibt es hier schon.",
+    tooMany: "Zu viele Versuche. Warte einen Moment.",
+    otherOrigin: "Anfrage von einer anderen Herkunft.",
+    badRequest: "Ungültige Anfrage.",
+    tooLarge: "Die Anfrage ist zu groß.",
+    codeInvalid: "Der Code ist ungültig oder abgelaufen.",
+    needsDeviceToken: "Ein Gerätetoken ist nötig.",
+    firstName: "Ich",
+  },
+  en: {
+    keyType: "This key type is not supported.",
+    badCredential: "The sign-in data is not valid.",
+    wrongOrigin: "The origin does not match.",
+    wrongRp: "The domain does not match.",
+    notConfirmed: "The passkey was not confirmed.",
+    needsUv: "The passkey needs face, fingerprint or PIN confirmation.",
+    unknownPasskey: "This passkey is not known here.",
+    badSignature: "The signature is not valid.",
+    cloned: "This passkey looks copied and was refused.",
+    expiredCeremony: "The sign-in timed out. Try again.",
+    setupClosed: "Setup is closed.",
+    linkGone: "This link has expired or was already used. Ask for a new one.",
+    alreadyRegistered: "This passkey is already registered here.",
+    signIn: "Sign in to continue.",
+    forbidden: "That is not allowed.",
+    adminOnly: "Only an admin can do that.",
+    lastPasskey: "The last passkey cannot be deleted.",
+    lastAdmin: "Someone must always be an admin. Make another person admin first.",
+    notFound: "That does not exist (any more).",
+    noSuchMember: "There is nobody with that id here.",
+    nameMissing: "The name is missing.",
+    nameTaken: "That name is already taken here.",
+    tooMany: "Too many attempts. Wait a moment.",
+    otherOrigin: "Request from another origin refused.",
+    badRequest: "The request is not valid.",
+    tooLarge: "The request is too large.",
+    codeInvalid: "The code is wrong or has expired.",
+    needsDeviceToken: "A device token is needed.",
+    firstName: "Me",
+  },
+} as const satisfies Record<Lang, Record<string, string>>;
+
+export type MessageKey = keyof typeof MESSAGES.de;

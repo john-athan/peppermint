@@ -1,0 +1,62 @@
+# peppermint on kaleve-home, the laptop behind the Cloudflare tunnel. Under pressure peppermint is the one
+# that yields: capped memory, first in line for the OOM killer, low CPU and IO weight. It listens on localhost
+# only; nginx (deploy/nginx.sh) is the tunnel's target for peppermint.kaleve.dev. No gate sits in front: the
+# app's own passkeys decide who gets in (docs/accounts.md).
+#
+# Install and upgrade: deploy/deploy.sh (builds, copies, restarts, checks /healthz).
+# Secrets live in /etc/peppermint.env (root, 0600): PEPPERMINT_SETUP_TOKEN, and later
+# ANTHROPIC_API_KEY or CLAUDE_CODE_OAUTH_TOKEN if Claude should run on the server.
+[Unit]
+Description=peppermint: personal reader
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+DynamicUser=yes
+User=peppermint
+StateDirectory=peppermint
+WorkingDirectory=/var/lib/peppermint
+EnvironmentFile=-/etc/peppermint.env
+Environment=PORT=4317 HOST=127.0.0.1
+Environment=PEPPERMINT_ORIGIN=https://peppermint.kaleve.dev
+Environment=PEPPERMINT_DB=/var/lib/peppermint/peppermint.db
+Environment=PEPPERMINT_DIST=/usr/local/lib/peppermint/dist
+Environment=HOME=/var/lib/peppermint
+# Claude through the owner's subscription: Claude Code in /usr/local/bin with CLAUDE_CODE_OAUTH_TOKEN from
+# /etc/peppermint.env. One process per lane, since every `claude -p` needs a few hundred MB on this small server.
+Environment=PEPPERMINT_CLI_NEEDS_TOKEN=1 PEPPERMINT_CLI_CONCURRENCY=1 PEPPERMINT_CLI_TAG_CONCURRENCY=1
+ExecStart=/usr/local/lib/peppermint/peppermint
+Restart=always
+RestartSec=10
+MemoryMax=1500M
+OOMScoreAdjust=600
+CPUWeight=20
+IOWeight=20
+Nice=10
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+ProtectProc=invisible
+ProcSubset=pid
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+# no MemoryDenyWriteExecute: Bun's JavaScript engine compiles code at run time
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

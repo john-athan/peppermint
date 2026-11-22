@@ -1,0 +1,9 @@
+.DS_Store
+app/node_modules/
+app/dist/
+app/data/
+app/build-linux/
+app/build-linux.tgz
+app/client/lib/marks.gen.ts
+app/tests/fixtures/
+.claude/

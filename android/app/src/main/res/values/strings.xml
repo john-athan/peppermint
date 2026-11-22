@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">peppermint</string>
+    <string name="listen_short">Listen</string>
+    <string name="listen_long">Listen</string>
+</resources>
