@@ -1,9 +1,17 @@
+<div align="center">
+
+<img src="app/client/icons/icon-512.png" width="96" alt="peppermint">
+
 # peppermint
+
+</div>
 
 A personal reader: everything you follow (feeds, podcasts, channels), tagged, clustered into stories and served as a
 finite edition scored by your taste. For one reader or a small group who share a server, each with their own sources
 and palate; passkeys only. Live at https://peppermint.kaleve.dev on kaleve-home (the laptop in
 toolbox/home).
+
+<img src="assets/screenshot.jpg" alt="peppermint on the desktop: the Palate page, where topics and rules shape the edition" width="720">
 
 ## Layout
 
