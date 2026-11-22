@@ -46,9 +46,26 @@ test("the markup is well formed, uses theme colours only, escapes the word and s
     expect(/#[0-9a-f]{3,8}\b/i.test(svg.replace(/href="#\w+"|url\(#\w+\)/g, ""))).toBe(false);
     expect(svg).not.toContain("<b>");
     expect(svg).not.toMatch(/NaN|undefined|Infinity/);
-    expect(svg.length).toBeLessThan(32_000);
+    // the wide one carries its waves' eight ripple shapes, about 11 KB
+    expect(svg.length).toBeLessThan("wide" in o ? 40_000 : 32_000);
   }
   // a thumbnail has no lettering
   expect(emblemSvg({ motif: "bolt", mood: "sun", word: "Ørsted" }, 1, { small: true })).not.toContain("<text");
   expect(emblemSvg({ motif: "bolt", mood: "sun", word: "Ørsted" }, 1)).toContain("ØRSTED");
+});
+
+test("only the wide emblem moves: ring and pattern turn opposite ways, the waves ripple, the motif and word stay", () => {
+  const spec = { motif: "sprig", mood: "mint" as const, word: "Garching" };
+  expect(emblemSvg(spec, 1)).not.toContain("<animate");
+  expect(emblemSvg(spec, 1, { small: true })).not.toContain("<animate");
+  for (let seed = 0; seed < 20; seed++) {
+    const svg = emblemSvg(spec, seed, { wide: true });
+    expect(svg.match(/<animate attributeName="d"/g)?.length).toBe(2);
+    const turns = [...svg.matchAll(/type="rotate" from="0" to="(-?\d+)"/g)].map(m => +m[1]);
+    expect(turns[0]).toBe(360);
+    if (turns.length > 1) expect(turns[1]).toBe(-360);
+    // each ripple shape has as many points as the first, or SMIL would jump instead of easing between them
+    for (const m of svg.matchAll(/values="([^"]+)"/g)) expect(new Set(m[1].split(";").map(d => d.split(" ").length)).size).toBe(1);
+    expect(svg.slice(svg.lastIndexOf("<g transform="))).not.toContain("<animate");
+  }
 });

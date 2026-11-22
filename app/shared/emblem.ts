@@ -106,12 +106,18 @@ function polar(r: (t: number) => number, steps = 240) {
   return d + "Z";
 }
 
+// The wide emblem moves, slowly enough to read as light on an engraving and never as a loading spinner:
+// seconds per turn of the ring and of the pattern inside it (the other way), and per ripple of the waves.
+const RING_S = 90, INNER_S = 140, WAVE_S = 16, PHASES = 8;
+/** A turn about the centre, as SMIL, so Emblem.svelte can pause it with the waves; negative turns the other way. */
+const spin = (s: number) => `<animateTransform attributeName="transform" type="rotate" from="0" to="${s < 0 ? -360 : 360}" dur="${Math.abs(s)}s" repeatCount="indefinite"/>`;
+
 const FRAMES = ["seal", "disc", "badge", "milled"] as const;
 const PATTERNS = ["rays", "hatch", "contour", "rosette"] as const;
 
 /**
  * The emblem as SVG markup. `wide` draws the seal on a 16:9 field of guilloche waves (a card's picture strip),
- * otherwise a square seal alone; `small` leaves out the lettering for thumbnails where it could not be read.
+ * otherwise a square seal alone; the wide one moves (ring and pattern turn, the waves ripple), the motif and word stay still; `small` leaves out the lettering for thumbnails where it could not be read.
  */
 export function emblemSvg(spec: EmblemSpec, seed: number | string, o: { wide?: boolean; small?: boolean; label?: string } = {}): string {
   const R = rng(`${seed}:${spec.motif}`), id = `em${R.id}`;
@@ -125,11 +131,25 @@ export function emblemSvg(spec: EmblemSpec, seed: number | string, o: { wide?: b
   if (o.wide) {
     const L = R.int(9, 13), gap = R.int(3, 5), amp = R.int(10, 16), lam = R.int(46, 70), drift = 0.2 + R.next() * 0.35;
     // one wave per family, swelling towards the seal; the other lines are shifted copies (<use>), so the band is cheap
+    // The waves ripple: the swell stays where it is and the phase runs through it, the two families in opposite
+    // directions. A phase shift is not a translation, so the path's shape is drawn at PHASES steps and SMIL steps
+    // through them; relative points keep the eight shapes small. Emblem.svelte pauses it off screen.
     s += `<g fill="none" stroke="var(--em-line)" stroke-width=".55" opacity=".75">`;
+    const x0 = -W / 2 - lam, n = Math.floor((W + 2 * lam) / 5);
+    // "l5 -.3 5 .2 …": one relative lineto, its pairs repeated, without leading zeros
+    const num = (v: number) => String(f(v)).replace(/^(-?)0\./, "$1.");
+    const wave = (fam: number, ph: number) => {
+      let p = "", last = 0;
+      for (let i = 0; i <= n; i++) {
+        const x = x0 + i * 5, y = f(amp * (0.3 + 0.7 * Math.cos((x / W) * Math.PI) ** 2) * Math.sin((x / lam) * Math.PI * 2 + fam * Math.PI + ph));
+        p += i === 0 ? `M${f(x)} ${y}l` : `${i > 1 ? " " : ""}5 ${num(y - last)}`;
+        last = y;
+      }
+      return p;
+    };
     for (const fam of [0, 1]) {
-      let p = "";
-      for (let x = -W / 2 - lam; x <= W / 2 + lam; x += 4) p += `${p ? "L" : "M"}${f(x)} ${f(amp * (0.3 + 0.7 * Math.cos((x / W) * Math.PI) ** 2) * Math.sin((x / lam) * Math.PI * 2 + fam * Math.PI))}`;
-      s += `<path id="${id}w${fam}" d="${p}" transform="translate(0 ${f((-(L - 1) / 2) * gap)})"/>`;
+      const frames = Array.from({ length: PHASES + 1 }, (_, j) => wave(fam, (fam ? 1 : -1) * (j / PHASES) * Math.PI * 2));
+      s += `<path id="${id}w${fam}" d="${frames[0]}" transform="translate(0 ${f((-(L - 1) / 2) * gap)})"><animate attributeName="d" dur="${WAVE_S}s" repeatCount="indefinite" values="${frames.join(";")}"/></path>`;
       for (let i = 1; i < L; i++) s += `<use href="#${id}w${fam}" transform="translate(${f(i * drift * lam / 6)} ${f(i * gap)})"/>`;
     }
     s += `</g>`;
@@ -155,7 +175,7 @@ export function emblemSvg(spec: EmblemSpec, seed: number | string, o: { wide?: b
     s += `<circle r="78.5" fill="var(--em-field)" stroke="var(--em-deep)" stroke-width="1.1"/><g fill="none" stroke="var(--em-line)" stroke-width=".6">`;
     s += `<path id="${id}r" d="${polar(t => 69 + amp * Math.sin(k * t), k * 14)}"/>`;
     for (let j = 1; j < M; j++) s += `<use href="#${id}r" transform="rotate(${f((j * 360) / (k * M))})"/>`;
-    s += `</g>`;
+    s += (o.wide ? spin(RING_S) : "") + `</g>`;
   }
   if (spec.word && !o.small) {
     // the word along the top of the ring, haloed in the field colour so it reads over the waves; three dots at the bottom balance it
@@ -169,6 +189,8 @@ export function emblemSvg(spec: EmblemSpec, seed: number | string, o: { wide?: b
   else if (pattern === "hatch") { const a = R.int(20, 70), g = 3.2; let d = ""; for (let y = -60; y <= 60; y += g) d += `M-60 ${f(y)}H60`; s += `<path d="${d}" transform="rotate(${a})"/><path d="${d}" transform="rotate(${a + 90})" opacity=".45"/>`; }
   else if (pattern === "contour") { const p = R.next() * 6, q = R.next() * 6, k1 = R.int(2, 4), k2 = R.int(5, 7); let d = ""; for (let r = 36; r < 60; r += 2.6) d += polar(t => r + 1.6 * Math.sin(k1 * t + p + r / 9) + 1.1 * Math.sin(k2 * t + q), 90); s += `<path d="${d}"/>`; }
   else { const n = R.pick([9, 12, 15]); for (let i = 0; i < n; i++) s += `<ellipse rx="57" ry="${R.int(14, 19)}" transform="rotate(${f((i * 180) / n)})"/>`; }
+  // the pattern turns against the ring; a hatch would turn like a grid on a machine, so it stays
+  if (o.wide && pattern !== "hatch") s += spin(-INNER_S);
   s += `</g><circle r="36" fill="var(--em-core)" opacity=".9"/><circle r="36" fill="none" stroke="var(--em-line)" stroke-width=".8"/>`;
 
   // the motif, engraved: a knockout in the core colour under the line, so the pattern never touches it
