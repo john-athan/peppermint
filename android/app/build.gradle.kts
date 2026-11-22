@@ -63,9 +63,9 @@ dependencies {
     implementation("androidx.compose.foundation:foundation")
     implementation("androidx.activity:activity-compose:1.13.0")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.11.0")
-    implementation("androidx.work:work-runtime:2.11.2")
+    implementation("androidx.work:work-runtime:2.12.0")
     // Trusted Web Activity: the app shows the web app in Chrome's engine (BrowseActivity)
-    implementation("androidx.browser:browser:1.9.0")
+    implementation("androidx.browser:browser:1.10.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.11.0")
     // Playback: ExoPlayer in a MediaSessionService, so the lock screen, headphones and the notification control it
     implementation("androidx.media3:media3-exoplayer:1.11.1")
