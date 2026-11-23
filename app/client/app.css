@@ -884,7 +884,8 @@ html.snap-feed { scroll-snap-type: y mandatory; scroll-padding: 8px 0 calc(74px 
 html.snap-feed .snap-top { scroll-snap-align: start; }
 html.snap-feed .feed-tail { scroll-snap-align: start; }
 .cards.feed { gap: 18px; padding: 4px 12px 24px; }
-.card-wrap.big { scroll-snap-align: center; scroll-snap-stop: always; }
+/* every card in the feed is a stop, a slim one (nothing to read behind it) too: without its own snap point a swipe ran past it to the next big card */
+.cards.feed > .card-wrap { scroll-snap-align: center; scroll-snap-stop: always; }
 .card.big { height: clamp(440px, calc(100svh - 132px - env(safe-area-inset-bottom, 0px)), 780px); display: flex; flex-direction: column; gap: 10px; border-radius: 26px; padding: 16px 18px 18px; overflow: hidden; }
 @media (min-width: 900px) { .card.big { height: clamp(480px, calc(100vh - 64px), 820px); padding: 18px 24px 22px; } }
 .card.big .src { padding-right: 112px; font-size: 12.5px; }
