@@ -19,6 +19,8 @@ test("grade: walls, thin, partial and full", () => {
   expect(grade("Software companies", "Software companies\nYou must log in to LiveJournal to continue reading this entry.")).toBe("walled");
   expect(grade("x", "Please enable JavaScript to view this page.")).toBe("walled");
   expect(grade("x", "Bitte melden Sie sich an, um weiterzulesen. Jetzt abonnieren.")).toBe("walled");
+  // zeit.de sends servers to its consent page (/zustimmung) instead of the article
+  expect(grade("Wirtschaftspodcast: Warum werden gerade so viele Start-ups gegründet?", "zeit.de mit Werbung Besuchen Sie zeit.de wie gewohnt mit Werbung und Tracking. Details zum Tracking finden Sie im Privacy Center. zeit.de pur Lesen Sie zeit.de werbefrei.")).toBe("walled");
   expect(grade("Title", "Title")).toBe("thin");
   expect(grade("x", words(40))).toBe("thin");
   expect(grade("x", words(120))).toBe("partial");

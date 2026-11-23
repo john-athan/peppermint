@@ -24,6 +24,8 @@ const WALL = [
   /are you a (human|robot)|verify (that )?you are (a )?human|captcha|unusual traffic|access denied|403 forbidden|404 not found|page not found|seite nicht gefunden|this page (is|was) (not available|removed)/i,
   /adult content|members only|paywall|this content is (only )?available to/i,
   /melden sie sich an|registrieren sie sich|um weiterzulesen|jetzt abonnieren|weiterlesen mit (abo|plus)/i,
+  // a consent wall instead of the page: zeit.de sends servers to /zustimmung ("mit Werbung und Tracking" or "pur")
+  /mit werbung und tracking|werbefrei (lesen|nutzen)|\bpur[- ]?abo\b|zustimmung zu (werbung|tracking)/i,
 ];
 const clean = (s: string) => s.replace(/[#*>`_|]+/g, " ").replace(/\s+/g, " ").trim();
 

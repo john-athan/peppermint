@@ -9,7 +9,7 @@ read, in English or German, at three reading levels, streamed over SSE; the orig
 to dig into it: is it true, the data behind it, who said it, explained, or your own question, answered under the
 paragraph from the story plus a quick search of other reports and Wikipedia, with quoted passages. Listen turns the edition into a spoken episode; Studio is a live editor for writing from it. One input bar searches
 everything you follow as you type, and its agent turns a line into something the app shows: a link into an item, a
-question into a dossier, a wish into a palate change you can undo, a question about a story into the Ask lens.
+question into a dossier, a wish into a palate change you can undo, a question about a story into the Ask lens, answered from the story plus a quick search of other reports and Wikipedia, so a walled article still gets an answer.
 
 Live at https://peppermint.kaleve.dev. The design of the server is in `docs/backend.md`.
 

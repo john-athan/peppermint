@@ -3,7 +3,7 @@
   import Skeleton from "../components/Skeleton.svelte";
   import { app, go, toast, type Card } from "../lib/state.svelte";
   import { api, beacon, sse } from "../lib/api";
-  import { ago, signed, askParts, digParts } from "../lib/format";
+  import { ago, signed, digParts } from "../lib/format";
   import { blocks, type LensBlock } from "../lib/lens";
   import { markSentence, sentenceAt } from "../lib/dig";
   import { I } from "../lib/icons";
@@ -73,7 +73,7 @@
   }
   let stop: (() => void) | null = null;
   // Ask: earlier questions on this story, and the one being answered now (its answer streams in as it is written)
-  let asks = $state<Ask[]>([]), asking = $state<{ q: string; text: string; busy: boolean; failed: string } | null>(null);
+  let asks = $state<Ask[]>([]), asking = $state<{ q: string; text: string; status: string; busy: boolean; failed: string } | null>(null);
   let stopAsk: (() => void) | null = null, askEl: HTMLElement | undefined = $state();
 
   $effect(() => {
@@ -188,11 +188,12 @@
   async function loadAsks() { try { asks = (await api<{ asks: Ask[] }>(`/api/stories/${id}/asks`)).asks; } catch {} }
   function ask(q: string) {
     stopAsk?.();
-    asking = { q, text: "", busy: true, failed: "" };
+    asking = { q, text: "", status: "", busy: true, failed: "" };
     // the answer appears under the article: bring it into view (the bar stays docked at the bottom)
     tick().then(() => askEl?.scrollIntoView({ behavior: "smooth", block: "start" }));
     api("/api/signals", { method: "POST", json: { story_id: id, kind: "lens", meta: { lens: "ask" } } }).catch(() => {});
     stopAsk = sse(`/api/stories/${id}/ask?q=${encodeURIComponent(q)}`, {
+      status: d => { if (asking?.q === q) asking.status = d.text ?? ""; },
       delta: d => { if (asking?.q === q) asking.text += d.t; },
       // the saved answer replaces the streamed one, so what you see now is what you will see next time
       done: async () => { await loadAsks(); if (asking?.q === q) asking = null; },
@@ -328,11 +329,11 @@
             {#if !bs.length && (streaming || !text) && !leading}<p class="caret dim"></p>{/if}
           {/if}
         </div>
-        <!-- Ask: questions about this story, answered from its text with the passages they rest on, under the article -->
+        <!-- Ask: questions about this story, answered from its text and a quick search of other reports and Wikipedia, with the passages they rest on, under the article -->
         {#if asking || asks.length}
           <div class="ask-view" aria-live="polite" bind:this={askEl}>
-            {#if asking}{@render answer(asking.q, asking.text, asking.busy, asking.failed)}{/if}
-            {#each asks as a (a.id)}{#if a.q !== asking?.q}{@render answer(a.q, a.answer, false, "")}{/if}{/each}
+            {#if asking}{@render answer(asking.q, asking.text, asking.busy, asking.failed, asking.status)}{/if}
+            {#each asks as a (a.id)}{#if a.q !== asking?.q}{@render answer(a.q, a.answer, false, "", "")}{/if}{/each}
           </div>
         {/if}
         <Discussion {id} />
@@ -389,15 +390,18 @@
   {/if}
 {/snippet}
 
-{#snippet answer(q: string, text: string, busy: boolean, failed: string)}
-  {@const a = askParts(text)}
+{#snippet answer(q: string, text: string, busy: boolean, failed: string, status: string)}
+  {@const a = digParts(text)}
   <section class="ask-item">
     <h3>{q}</h3>
     {#if failed}<div class="notice"><span>{failed}</span></div>
-    {:else if busy && !text}<Skeleton lines={2} sm label="Answering" />
+    {:else if busy && !a.head.length}<Skeleton lines={2} sm label={status || "Answering"} />{#if status}<span class="hint">{status}…</span>{/if}
     {:else}
       <p class="ask-a" class:caret={busy}>{#each a.head as p}{#if "n" in p}<sup class="ask-n">{p.n}</sup>{:else}{p.t}{/if}{/each}</p>
-      {#each a.quotes as k}<blockquote class="ask-quote"><sup class="ask-n">{k.n}</sup>“{k.text}”{#if k.source}<small>{k.source}</small>{/if}</blockquote>{/each}
+      {#each a.quotes as k}
+        {@const src = a.sources.find(x => x.site === k.source)}
+        <blockquote class="ask-quote"><sup class="ask-n">{k.n}</sup>“{k.text}”{#if k.source}<small>{#if src}<a href={src.url} target="_blank" rel="noopener noreferrer" title={src.title}>{k.source}</a>{:else}{k.source}{/if}</small>{/if}</blockquote>
+      {/each}
     {/if}
   </section>
 {/snippet}
