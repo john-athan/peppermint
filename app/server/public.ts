@@ -276,7 +276,7 @@ const SHARE_T = {
   en: { tldr: "In short", sources: "Reports this is built on", by: "Retold by peppermint from", report: "report", reports: "reports", none: "This story has not been written up yet. The reports it is built on:", gone: "This link no longer works", goneText: "Whoever shared it has stopped sharing it." },
   de: { tldr: "Kurz gesagt", sources: "Die Berichte dahinter", by: "Von peppermint nacherzählt aus", report: "Bericht", reports: "Berichten", none: "Diese Geschichte ist noch nicht aufgeschrieben. Die Berichte dahinter:", gone: "Dieser Link gilt nicht mehr", goneText: "Wer ihn geteilt hat, teilt ihn nicht mehr." },
 };
-const SHARE_STYLE = `<style>.body ul{padding-left:22px;margin:0 0 1.05em}.body li{margin:0 0 .4em}.body blockquote{margin:0 0 1.05em;padding-left:16px;border-left:3px solid var(--rule);color:var(--muted)}.lead{background:var(--paper);border:1px solid var(--rule);border-radius:20px;padding:18px 20px 4px;margin:0 0 30px;font:17px/1.55 var(--sans)}.lead .kicker{margin:0 0 8px}.lead .body p:first-child::first-letter{font:inherit;float:none;margin:0;color:inherit}</style>`;
+const SHARE_STYLE = `<style>.top .mark{display:block;width:30px;height:30px}.body ul{padding-left:22px;margin:0 0 1.05em}.body li{margin:0 0 .4em}.body blockquote{margin:0 0 1.05em;padding-left:16px;border-left:3px solid var(--rule);color:var(--muted)}.lead{background:var(--paper);border:1px solid var(--rule);border-radius:20px;padding:18px 20px 4px;margin:0 0 30px;font:17px/1.55 var(--sans)}.lead .kicker{margin:0 0 8px}.lead .body p:first-child::first-letter{font:inherit;float:none;margin:0;color:inherit}</style>`;
 
 /** The page behind a short link, or null when the path is no share link (the app answers it then). */
 export function serveShared(req: Request, url: URL, origin: string, viewer: number | null): Response | null {
@@ -297,11 +297,11 @@ export function serveShared(req: Request, url: URL, origin: string, viewer: numb
   const safe = (u: string) => /^https?:\/\//i.test(u) ? u : "";
   const desc = lead.replace(/```[\s\S]*?(```|$)/g, "").replace(/[#*>\-•]/g, "").replace(/\s+/g, " ").trim().slice(0, 200);
   const link = `${origin}/s/${sh.code}`;
-  const meta = `<meta name="robots" content="noindex"><meta property="og:type" content="article"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="${esc(link)}"><meta property="og:site_name" content="peppermint"><meta name="twitter:card" content="summary">${SHARE_STYLE}`;
+  const meta = `<meta name="robots" content="noindex"><meta property="og:type" content="article"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="${esc(link)}"><meta property="og:site_name" content="peppermint"><meta property="og:image" content="${esc(origin)}/icon-512.png"><meta name="twitter:card" content="summary"><link rel="icon" href="/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/apple-touch-icon.png">${SHARE_STYLE}`;
   if (!isBot(req) && viewer !== sh.owner_id) db.query("UPDATE shares SET views = views + 1 WHERE code = ?").run(sh.code);
   const n = items.length;
   const page = head(title, desc, meta).replace('<html lang="de">', `<html lang="${lang}">`) + `<main class="wrap">
-<a class="top" href="${esc(link)}"><span class="dot">p</span><b>peppermint</b></a>
+<a class="top" href="${esc(link)}"><img class="mark" src="/icon.svg" width="30" height="30" alt=""><b>peppermint</b></a>
 <p class="kicker">${esc(dateFmt(st.last_at, lang))}</p><h1>${esc(title)}</h1>
 <div class="by">${t.by} ${n} ${n === 1 ? t.report : t.reports}</div>
 ${lead ? `<div class="lead"><p class="kicker">${t.tldr}</p><div class="body">${lensHtml(lead)}</div></div>` : ""}

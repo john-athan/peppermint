@@ -40,6 +40,7 @@ test("a shared story is one short public link: the retelling and its reports, no
   expect(page.headers.get("x-robots-tag")).toBe("noindex");
   const html = await page.text();
   expect(html).toContain("<h1>Trunk line closed</h1>");
+  expect(html).toContain('src="/icon.svg"');
   expect(html).toContain("The <b>trunk</b> line closes for &lt;b&gt;repairs&lt;/b&gt;.");
   expect(html).toContain("<h2>What happens</h2>");
   expect(html).toContain("<li>two</li>");
