@@ -30,7 +30,7 @@ import { MARK, searchStories } from "./search";
 import { weatherCode } from "./weather";
 import { caseRoutes, caseTick } from "./case-routes";
 import { ASSETLINKS, listenRoutes } from "./listen-routes";
-import { servePublic } from "./public";
+import { serveShared, newShareCode, servePublic } from "./public";
 import { atomsFor, chartFromDraft, createDraft, FORMS, getDraft, listDrafts, previewStream, saveDraft, suggestStream } from "./studio";
 import { cleanFilter, parseFilter } from "./filter";
 import { addTopic, ownTopics, removeTopic, TopicError, topicsFor } from "./topics";
@@ -331,7 +331,23 @@ route("GET", "/api/stories/:id", async ({ owner, params }) => {
   // names guessed by the local fallback (no Claude) are too rough to put on screen; places come from a fixed list and stay
   const guessed = (db.query("SELECT tags FROM items WHERE story_id = ?").all(st.id) as { tags: string }[]).every(r => json<any>(r.tags, {}).by === "local");
   const entities = setting(owner!, "images", true) ? await entitiesFor(owner!, guessed ? { places: t.places } : t, card.lang) : [];
-  return J({ ...card, items, entities, following: isFollowing(owner!, st.id), research: agent.topicOf(owner!, st.id), newReports: newSince(owner!, st.id).map(r => r.title), figures: storyFigures(owner!, st.id), people: t.people ?? [], orgs: t.orgs ?? [], places: t.places ?? [], atoms: (db.query("SELECT tags FROM items WHERE story_id = ?").all(st.id) as any[]).flatMap(r => json<any>(r.tags, {}).atoms ?? []).slice(0, 8) });
+  const share = db.query("SELECT code FROM shares WHERE owner_id = ? AND story_id = ?").get(owner, st.id) as { code: string } | null;
+  return J({ ...card, items, entities, share: share ? `${ORIGIN}/s/${share.code}` : null, following: isFollowing(owner!, st.id), research: agent.topicOf(owner!, st.id), newReports: newSince(owner!, st.id).map(r => r.title), figures: storyFigures(owner!, st.id), people: t.people ?? [], orgs: t.orgs ?? [], places: t.places ?? [], atoms: (db.query("SELECT tags FROM items WHERE story_id = ?").all(st.id) as any[]).flatMap(r => json<any>(r.tags, {}).atoms ?? []).slice(0, 8) });
+});
+// sharing a story: one short link per story, public until it is stopped (server/public.ts serves it). Sharing again
+// keeps the link and moves it to the language and level being read now.
+route("POST", "/api/stories/:id/share", async ({ req, owner, params }) => {
+  const st = db.query("SELECT id FROM stories WHERE id = ? AND owner_id = ?").get(Number(params.id), owner) as any;
+  if (!st) return err(404, "Story not found.");
+  const b = await body(req);
+  const lang = b.lang === "de" ? "de" : "en", level = Math.min(3, Math.max(1, Math.round(Number(b.level) || 2)));
+  const r = db.query("INSERT INTO shares (code, owner_id, story_id, lang, level, created_at) VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(owner_id, story_id) DO UPDATE SET lang = excluded.lang, level = excluded.level RETURNING code")
+    .get(newShareCode(), owner, st.id, lang, level, now()) as { code: string };
+  return J({ url: `${ORIGIN}/s/${r.code}` });
+});
+route("DELETE", "/api/stories/:id/share", ({ owner, params }) => {
+  db.query("DELETE FROM shares WHERE owner_id = ? AND story_id = ?").run(owner, Number(params.id));
+  return J({ ok: true });
 });
 route("GET", "/api/stories/:id/original", ({ owner, params }) => {
   const st = db.query("SELECT id FROM stories WHERE id = ? AND owner_id = ?").get(Number(params.id), owner) as any;
@@ -824,6 +840,8 @@ const server = Bun.serve({
   async fetch(req, srv) {
     const url = new URL(req.url);
     if (url.pathname.startsWith("/api/")) {
+      const ring = await auth.keyring(req, url.pathname);
+      if (ring) return ring;
       const own = await auth.accounts.handle(req, auth.accounts.clientIp(req, srv.requestIP(req)?.address ?? "127.0.0.1"));
       if (own) return own;
       // mutating requests must come from our own origin: Origin, or Sec-Fetch-Site where a browser sends no Origin
@@ -858,6 +876,8 @@ const server = Bun.serve({
     }
     // the writer's public page: open to anyone, outside the app
     if (url.pathname.startsWith("/@")) return servePublic(req, url, ORIGIN, await auth.ownerFromRequest(req));
+    // a story shared as a short link: open to anyone who has the link
+    if (url.pathname.startsWith("/s/")) { const r = serveShared(req, url, ORIGIN, await auth.ownerFromRequest(req)); if (r) return r; }
     // the Android app's signing key, so Chrome shows peppermint full screen inside the app
     if (url.pathname === "/.well-known/assetlinks.json") return new Response(ASSETLINKS, { headers: { "content-type": "application/json" } });
     const a = assets.get(url.pathname);

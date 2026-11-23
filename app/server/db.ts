@@ -230,6 +230,11 @@ const MIGRATIONS: string[] = [
    CREATE INDEX digs_story ON digs(owner_id, story_id);`,
   // 21: keyword filters per source (server/filter.ts): {"any": [...], "none": [...]}, applied before items are stored
   `ALTER TABLE sources ADD COLUMN filter TEXT NOT NULL DEFAULT '{}';`,
+  // 22: public short links to a story (/s/<code>, server/public.ts): one per reader and story, in the language and
+  // level it was shared in; stopping a share deletes the row and the link answers 404
+  `CREATE TABLE shares (code TEXT PRIMARY KEY, owner_id INTEGER NOT NULL REFERENCES users(id), story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
+     lang TEXT NOT NULL, level INTEGER NOT NULL, views INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL) STRICT;
+   CREATE UNIQUE INDEX shares_story ON shares(owner_id, story_id);`,
 ];
 
 db.exec("CREATE TABLE IF NOT EXISTS schema_version (v INTEGER NOT NULL)");

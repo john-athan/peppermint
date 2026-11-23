@@ -7,7 +7,8 @@
   import { api } from "../lib/api";
   import { ago } from "../lib/format";
   import { app, toast } from "../lib/state.svelte";
-  import { deviceLabel, logout, passkeyMessage, passkeysSupported, register } from "../lib/passkeys";
+  import { signOutHere } from "../lib/keyring";
+  import { deviceLabel, passkeyMessage, passkeysSupported, register } from "../lib/passkeys";
   import Loading from "../components/Loading.svelte";
 
   let me = $state<AccountMe | null>(null), people = $state<AccountMember[]>([]), keys = $state<AccountPasskey[]>([]), sessions = $state<AccountSession[]>([]);
@@ -51,7 +52,7 @@
   const pair = () => act(async () => { pairing = await api<AccountPairing>("/api/devices/pair", { method: "POST" }); });
   const unpair = (d: AccountDevice) => act(() => api(`/api/devices/${d.id}`, { method: "DELETE" }), `${d.name} is disconnected.`);
   const shownCode = (c: string) => c.length === 8 ? `${c.slice(0, 4)}-${c.slice(4)}` : c;
-  async function signOut() { try { await logout(); } catch {} location.replace("/"); }
+  const signOut = signOutHere;
   async function copy() { if (!link) return; try { await navigator.clipboard.writeText(link.link); copied = true; } catch { toast("Copying did not work. Select the link by hand."); } }
 
   const until = (ms: number) => new Date(ms).toLocaleString(app.lang === "de" ? "de-DE" : "en-GB", { weekday: "long", day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });

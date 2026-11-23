@@ -1548,6 +1548,15 @@ span.opt { cursor: default; }
 .acct-foot { padding-bottom: 32px; }
 .nav .nav-acct { display: none; }
 @media (min-width: 900px) { .nav .nav-acct { display: flex; } .acct-entry { display: none; } }
+.acct-switch { display: inline-flex; align-items: center; gap: 10px; border: 0; background: none; color: var(--ink); cursor: pointer; }
+.acct-switch.wide { width: 100%; padding: 8px 10px; border-radius: 12px; font-weight: 650; font-size: 14.5px; color: var(--muted); text-align: left; }
+.acct-switch.wide:hover { background: var(--surface-2); color: var(--ink); }
+.acct-dot { width: 34px; height: 34px; flex: none; border-radius: 50%; display: grid; place-items: center; background: var(--mint-soft); color: var(--mint); font: 800 13px var(--font-display); box-shadow: 0 0 0 1px var(--rule); }
+.acct-pick { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 4px; border: 0; border-bottom: 1px solid var(--rule); background: none; color: var(--ink); font-weight: 700; text-align: left; cursor: pointer; }
+.acct-pick > .min0 { flex: 1; }
+.acct-pick svg { width: 18px; height: 18px; color: var(--muted); }
+.share-link { display: flex; gap: 8px; align-items: center; margin-top: 6px; }
+.share-link code { flex: 1; min-width: 0; overflow-x: auto; white-space: nowrap; padding: 8px 10px; border-radius: 10px; background: var(--surface); }
 .src-address { display: flex; align-items: center; gap: 8px; }
 .src-address code { flex: 1; min-width: 0; overflow-wrap: anywhere; }
 .own-topics { margin: 12px 14px 0; display: grid; gap: 8px; }

@@ -5,11 +5,16 @@
   import { app } from "../lib/state.svelte";
   import { deviceLabel, login, passkeyMessage, passkeysSupported, previewLink, register, takeLinkToken } from "../lib/passkeys";
   import Mark from "../components/Mark.svelte";
+  import { accountsHere, switchTo, type Here } from "../lib/keyring";
   let { setup }: { setup: boolean } = $props();
   let busy = $state(false), error = $state(""), link = $state<AccountLinkPreview | null>(null), gone = $state("");
   // the token lives in the fragment, which no server and no log ever sees; take it and clear the address bar
   const token = location.pathname === "/setup" ? takeLinkToken() : "";
   if (token) previewLink(token).then(l => (link = l), e => (gone = e.message));
+  // accounts still signed in here (one stepped back to add another): one tap goes back to them
+  let here = $state<Here | null>(null);
+  if (!token && !setup) accountsHere().then(h => (here = h)).catch(() => {});
+  async function back(id: number) { busy = true; try { await switchTo(id); } catch (e: any) { error = e.message; busy = false; } }
   const lead = $derived(!link ? "" : link.purpose === "setup" ? "Create the first passkey. It makes you the admin of this peppermint, who invites the others."
     : link.purpose === "join" ? `Welcome, ${link.name}. Create your passkey: it stays on this device and syncs with your password manager.`
     : link.purpose === "recover" ? `A new passkey for ${link.name}. It replaces all their passkeys and signs out every browser they were signed in on.`
@@ -45,7 +50,8 @@
     <p>No passkey exists yet. Open the setup link the server printed when it first started, with everything after the #.</p>
   {:else}
     <p>Everything you follow, distilled to your taste.</p>
-    <button class="primary" type="button" disabled={busy} onclick={signIn}>Sign in with passkey</button>
+    <button class="primary" type="button" disabled={busy} onclick={signIn}>{here?.others.length ? "Sign in to another account" : "Sign in with passkey"}</button>
+    {#each here?.others ?? [] as o (o.id)}<button class="ghost" type="button" disabled={busy} onclick={() => back(o.id)}>Back to {o.name}</button>{/each}
   {/if}
   <p class="error-line" role="alert">{error}</p>
 </div>

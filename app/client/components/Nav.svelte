@@ -3,6 +3,7 @@
   import Link from "./Link.svelte";
   import { I } from "../lib/icons";
   import Mark from "./Mark.svelte";
+  import AccountSwitch from "./AccountSwitch.svelte";
   const tabs = [
     { path: "/", label: "Today", icon: I.today, match: (p: string) => p === "/" || p.startsWith("/story/") },
     { path: "/list", label: "List", icon: I.save },
@@ -24,6 +25,6 @@
     </Link>
   {/each}
   <div class="foot">Pull down on Today, or press <kbd>R</kbd>, to harvest.</div>
-  <!-- on a phone the bar has no room left: Today's header carries the way to the account instead -->
-  <Link class="nav-acct" href="/account" aria-current={app.path === "/account" ? "page" : undefined}>{@html I.key}<span>Account</span></Link>
+  <!-- the account in front, and switching to another; on a phone the bar has no room left, so Today's header carries it -->
+  <AccountSwitch wide cls="nav-acct" />
 </nav>

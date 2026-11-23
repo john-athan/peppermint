@@ -1,4 +1,5 @@
 <script lang="ts">
+  import AccountSwitch from "../components/AccountSwitch.svelte";
   import Link from "../components/Link.svelte";
   import { I } from "../lib/icons";
   import { app, toast, type Card as C } from "../lib/state.svelte";
@@ -139,7 +140,7 @@
 <div class="page today">
   <Pull verb="harvest" {busy} msg={ptrMsg} onpull={harvestNow} />
   <div class="snap-top">
-    <header class="appbar"><h1>Today</h1><span class="sp"></span><Link class="icon-btn acct-entry" href="/account" aria-label="Account and people">{@html I.key}</Link></header>
+    <header class="appbar"><h1>Today</h1><span class="sp"></span><AccountSwitch cls="acct-entry" /></header>
     <div class="agent-top">
       <AskBar search placeholder="Ask, paste a link, or follow…" onsubmit={(q) => submit(q, { kind: "today" })} oncapture={() => openCapture()} />
       <CaseNews />

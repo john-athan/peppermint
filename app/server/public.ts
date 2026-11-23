@@ -233,3 +233,80 @@ async function servePublicPage(req: Request, url: URL, origin: string, viewer: n
   if (!isBot(req) && viewer !== owner) count(p.id, "reads");
   return html(article(p, prof, origin));
 }
+
+/* ---------- a shared story: /s/<code> ---------- */
+// A reader shares a story as a short link; anyone who opens it reads what peppermint wrote for that reader (the TL;DR
+// and the retelling, in the language and level they shared it in), with every report it is built on. Never the
+// original articles themselves: those belong to their publishers and are one tap away at the end. No script, no
+// pictures (story pictures sit behind the session), no index: a link for the people it was sent to.
+
+const SHARE_CODE = /^[A-Za-z0-9]{7}$/;
+const ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+/** Seven characters from 57: about 2 × 10¹² links, so nobody finds one by trying. */
+export function newShareCode(): string {
+  const b = crypto.getRandomValues(new Uint8Array(7));
+  return Array.from(b, x => ALPHABET[x % ALPHABET.length]).join("");
+}
+
+/** The small markdown the lenses write (client/lib/lens.ts), as HTML: headings, lists, quotes, **bold**. Charts and
+ *  key-figure blocks are dropped, since they need the app to draw them. */
+function lensHtml(text: string): string {
+  const inline = (s: string) => { const p = s.split("**"); return p.length % 2 ? p.map((x, i) => i % 2 ? `<b>${esc(x)}</b>` : esc(x)).join("") : esc(s); };
+  const out: string[] = [];
+  for (const chunk of text.replace(/```[\s\S]*?(```|$)/g, "").split(/\n{2,}/)) {
+    const lines = chunk.split("\n").map(l => l.trim()).filter(Boolean);
+    let para: string[] = [], list: string[] = [];
+    const flush = () => {
+      if (para.length) { out.push(`<p>${inline(para.join(" "))}</p>`); para = []; }
+      if (list.length) { out.push(`<ul>${list.map(l => `<li>${inline(l)}</li>`).join("")}</ul>`); list = []; }
+    };
+    for (const l of lines) {
+      const h = /^(#{2,3})\s+(.+)$/.exec(l), li = /^[-•*]\s+(.+)$/.exec(l), q = /^>\s?(.*)$/.exec(l);
+      if (h) { flush(); out.push(`<h2>${esc(h[2].replace(/\*\*/g, ""))}</h2>`); }
+      else if (li) { if (para.length) { out.push(`<p>${inline(para.join(" "))}</p>`); para = []; } list.push(li[1]); }
+      else if (q) { flush(); out.push(`<blockquote>${inline(q[1])}</blockquote>`); }
+      else { if (list.length) flush(); para.push(l); }
+    }
+    flush();
+  }
+  return out.join("");
+}
+
+const SHARE_T = {
+  en: { tldr: "In short", sources: "Reports this is built on", by: "Retold by peppermint from", report: "report", reports: "reports", none: "This story has not been written up yet. The reports it is built on:", gone: "This link no longer works", goneText: "Whoever shared it has stopped sharing it." },
+  de: { tldr: "Kurz gesagt", sources: "Die Berichte dahinter", by: "Von peppermint nacherzählt aus", report: "Bericht", reports: "Berichten", none: "Diese Geschichte ist noch nicht aufgeschrieben. Die Berichte dahinter:", gone: "Dieser Link gilt nicht mehr", goneText: "Wer ihn geteilt hat, teilt ihn nicht mehr." },
+};
+const SHARE_STYLE = `<style>.body ul{padding-left:22px;margin:0 0 1.05em}.body li{margin:0 0 .4em}.body blockquote{margin:0 0 1.05em;padding-left:16px;border-left:3px solid var(--rule);color:var(--muted)}.lead{background:var(--paper);border:1px solid var(--rule);border-radius:20px;padding:18px 20px 4px;margin:0 0 30px;font:17px/1.55 var(--sans)}.lead .kicker{margin:0 0 8px}.lead .body p:first-child::first-letter{font:inherit;float:none;margin:0;color:inherit}</style>`;
+
+/** The page behind a short link, or null when the path is no share link (the app answers it then). */
+export function serveShared(req: Request, url: URL, origin: string, viewer: number | null): Response | null {
+  const m = /^\/s\/([^/]+)\/?$/.exec(url.pathname);
+  if (!m) return null;
+  if (req.method !== "GET" && req.method !== "HEAD") return new Response("Method not allowed", { status: 405 });
+  const sh = SHARE_CODE.test(m[1]) ? db.query("SELECT * FROM shares WHERE code = ?").get(m[1]) as { code: string; owner_id: number; story_id: number; lang: string; level: number } | null : null;
+  if (!sh) return html(head(SHARE_T.en.gone, "") + `<main class="wrap"><h1 class="kicker">${SHARE_T.en.gone}</h1><p>${SHARE_T.en.goneText}</p></main></body></html>`, 404, { "x-robots-tag": "noindex" });
+  const lang = sh.lang === "de" ? "de" : "en", t = SHARE_T[lang];
+  const st = db.query("SELECT title, title_en, last_at FROM stories WHERE id = ?").get(sh.story_id) as { title: string; title_en: string | null; last_at: number };
+  const title = (lang === "en" && st.title_en) || st.title;
+  // the text as the reader had it, else the nearest one written: the other levels, then only the short forms
+  const lens = (l: string, level?: number) => (db.query(`SELECT text FROM lens_cache WHERE story_id = ? AND lens = ? AND lang = ? AND done = 1 ${level ? "AND level = ?" : ""} ORDER BY abs(level - ?) LIMIT 1`)
+    .get(...(level ? [sh.story_id, l, lang, level, sh.level] : [sh.story_id, l, lang, sh.level])) as { text: string } | null)?.text ?? "";
+  const lead = lens("tldr", sh.level) || lens("tldr") || lens("brief");
+  const story = lens("digest", sh.level) || lens("digest");
+  const items = db.query("SELECT i.title, i.url, s.name AS source FROM items i JOIN sources s ON s.id = i.source_id WHERE i.story_id = ? ORDER BY i.published_at").all(sh.story_id) as { title: string; url: string; source: string }[];
+  const safe = (u: string) => /^https?:\/\//i.test(u) ? u : "";
+  const desc = lead.replace(/```[\s\S]*?(```|$)/g, "").replace(/[#*>\-•]/g, "").replace(/\s+/g, " ").trim().slice(0, 200);
+  const link = `${origin}/s/${sh.code}`;
+  const meta = `<meta name="robots" content="noindex"><meta property="og:type" content="article"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(desc)}"><meta property="og:url" content="${esc(link)}"><meta property="og:site_name" content="peppermint"><meta name="twitter:card" content="summary">${SHARE_STYLE}`;
+  if (!isBot(req) && viewer !== sh.owner_id) db.query("UPDATE shares SET views = views + 1 WHERE code = ?").run(sh.code);
+  const n = items.length;
+  const page = head(title, desc, meta).replace('<html lang="de">', `<html lang="${lang}">`) + `<main class="wrap">
+<a class="top" href="${esc(link)}"><span class="dot">p</span><b>peppermint</b></a>
+<p class="kicker">${esc(dateFmt(st.last_at, lang))}</p><h1>${esc(title)}</h1>
+<div class="by">${t.by} ${n} ${n === 1 ? t.report : t.reports}</div>
+${lead ? `<div class="lead"><p class="kicker">${t.tldr}</p><div class="body">${lensHtml(lead)}</div></div>` : ""}
+${story ? `<div class="body">${lensHtml(story)}</div>` : lead ? "" : `<p>${t.none}</p>`}
+<section><h3>${t.sources}</h3><ol class="src">${items.map(i => `<li>${safe(i.url) ? `<a href="${esc(safe(i.url))}" rel="noopener nofollow">${esc(i.title)}</a>` : esc(i.title)} <span>${esc(i.source)}</span></li>`).join("")}</ol></section>
+<footer><span>peppermint</span></footer></main></body></html>`;
+  return html(page, 200, { "x-robots-tag": "noindex" });
+}

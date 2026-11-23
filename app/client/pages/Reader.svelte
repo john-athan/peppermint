@@ -21,7 +21,7 @@
   import type { Ask } from "../../shared/types";
 
   let { id }: { id: number } = $props();
-  type Story = Card & { items: { id: number; title: string; url: string; author: string; published_at: number; lang: string; source: string; kind: string; media?: { audio: string | null; video: string | null; duration: number | null; image: string | null } }[]; people: string[]; entities: { name: string; kind: "person" | "place" | "org"; img: string | null; page: string | null; description?: string | null }[]; figures?: { src: string; caption: string }[]; atoms: { kind: string; text: string }[] };
+  type Story = Card & { items: { id: number; title: string; url: string; author: string; published_at: number; lang: string; source: string; kind: string; media?: { audio: string | null; video: string | null; duration: number | null; image: string | null } }[]; people: string[]; entities: { name: string; kind: "person" | "place" | "org"; img: string | null; page: string | null; description?: string | null }[]; figures?: { src: string; caption: string }[]; atoms: { kind: string; text: string }[]; share?: string | null };
   let story = $state<Story | null>(null), missing = $state("");
   // a story opens in your style: the TL;DR leads, the whole story retold follows once you scroll past it. Original is
   // the article as published, in its own language
@@ -53,6 +53,23 @@
       await flight;
       toast(`Researching “${r.task.title}”`, { ms: 6000, action: { label: "Open", run: () => go(`/dossier/${r.task.id}`) } });
     } catch (e) { toast((e as Error).message); } finally { researching = false; }
+  }
+  // sharing: a short public link to this story as you read it (language and level), with the reports behind it.
+  // The system share sheet where there is one, else the link is copied. Stop sharing in the reading menu.
+  let sharing = $state(false);
+  async function share() {
+    if (!story) return;
+    sharing = true; haptic("tick");
+    try {
+      const { url } = await api<{ url: string }>(`/api/stories/${id}/share`, { method: "POST", json: { lang, level } });
+      const fresh = !story.share; story.share = url;
+      if (navigator.share) { try { await navigator.share({ title: story.title, url }); } catch {} }
+      else { await navigator.clipboard.writeText(url); toast(fresh ? "Link copied. Anyone with it can read this story." : "Link copied.", { ms: 5000, action: { label: "Stop", run: unshare } }); }
+    } catch (e) { toast((e as Error).message); } finally { sharing = false; }
+  }
+  async function unshare() {
+    try { await api(`/api/stories/${id}/share`, { method: "DELETE" }); if (story) story.share = null; toast("The link no longer works."); }
+    catch (e) { toast((e as Error).message); }
   }
   let stop: (() => void) | null = null;
   // Ask: earlier questions on this story, and the one being answered now (its answer streams in as it is written)
@@ -222,6 +239,7 @@
   <header class="appbar">
     <a class="back" href="/" onclick={back}>{@html I.back}Today</a><span class="sp"></span>
     {#if reading}<button class="sse-badge" class:live={streaming} type="button" title="Reading settings" onclick={() => (menuOpen = true)}>{#if streaming}<i></i>{/if}<span>{reading}</span></button>{/if}
+    {#if story}<button class="icon-btn" type="button" aria-label="Share a link to this story" disabled={sharing} onclick={share}>{@html I.share}</button>{/if}
     {#if story}<button class="icon-btn" type="button" aria-label="Reading settings and why you see this" aria-haspopup="dialog" onclick={() => (menuOpen = true)}>{@html I.more}</button>{/if}
   </header>
   {#if missing}
@@ -398,6 +416,11 @@
       {#if mode === "orig"}<p class="hint">Language and level apply to your style; the original stays as published.</p>{/if}
     {:else}
       <div class="notice flush"><b>Original only for now</b><span>Your style, the TL;DR and digging into a sentence switch on when the server has a Claude key: set <code>ANTHROPIC_API_KEY</code> and restart.</span></div>
+    {/if}
+    {#if story.share}
+      <span class="lbl">Shared</span>
+      <div class="share-link"><code>{story.share}</code><button class="ghost sm" type="button" onclick={() => { menuOpen = false; unshare(); }}>Stop sharing</button></div>
+      <p class="hint">Anyone with the link reads this story as peppermint wrote it for you, and the reports behind it.</p>
     {/if}
     <span class="lbl between">Why you see this <span class="mono score">{story.score.toFixed(2)}</span></span>
     {#each story.reasons as r}
