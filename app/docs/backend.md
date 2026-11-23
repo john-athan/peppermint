@@ -220,7 +220,7 @@ is a chat message; each answer is an object with its own place:
 | "why do I see …" | an explanation from the weights, rules and your behaviour | a card on Palate and Today |
 | "check my palate" | up to three proposals, each with the evidence and what this edition would change | Palate |
 | "something new" | probes: up to three stories on adjacent subjects; More of this / Not for me is a normal signal | Today |
-| a question in the Reader | the Ask lens: an answer whose sentences point at quoted passages | the Reader |
+| a question in the Reader | the Ask lens: the story plus a quick search (up to four other reports and a Wikipedia article, as for digging into a sentence), an answer whose sentences point at quoted passages with links to the pages they come from | the Reader |
 
 | Rule | Why |
 |---|---|
@@ -230,7 +230,7 @@ is a chat message; each answer is an object with its own place:
 | Every applied change keeps the values it replaced and is logged as an `agent` signal; History can undo it | every change is explainable and reversible |
 | The edition preview builds the edition twice inside a transaction that is rolled back | the preview is the real build, not an estimate, and leaves nothing behind |
 | Research uses the topic source's news search and the address-guarded page reader, not a model-side web tool | works on both backends, one fetch path, the same guard |
-| Ask answers keep only quotes found word for word in the story's text | no claim stands on a passage the source never wrote |
+| Ask answers keep only quotes found word for word in the story's text or the other sources searched for it | no claim stands on a passage the source never wrote |
 | Agent sources (kind `agent`) are switched off and hidden from Sources | no harvest pulls them and your source count stays yours |
 | A dossier you ask for (the first run, a steer) is researched in rounds: three or four planned questions with a search each, then up to two more rounds searching what Claude finds open or one-sided; at most 20 articles, 150 s. The scheduled refresh is one round | one search reads one angle; the second and third rounds bring the critics, those affected and the newer reports |
 | Only readable articles go into a dossier: a walled page gets its Wayback copy (`archivedText`, shared with the reader's research) or is replaced by the next hit; an agency text already in it under another headline is left out (six-word runs, over half shared) | measured on 19.11.2026: one round kept 5 paywall stubs of 8; the deep run kept 20 readable reports from 18 outlets |
