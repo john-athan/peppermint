@@ -883,6 +883,8 @@ const server = Bun.serve({
     const a = assets.get(url.pathname);
     if (a) return serveAsset(req, a, url.pathname.startsWith("/assets/"));
     if (url.pathname === "/healthz") return new Response("ok");
+    // no page of the app has a part that starts with a dot: /.env and /.git/config are scanners looking for secrets
+    if (url.pathname.includes("/.")) return new Response("Not found.", { status: 404, headers: { "content-type": "text/plain; charset=utf-8", ...sec } });
     // app shell with the edition inlined so the first paint needs no second request
     const owner = await auth.ownerFromRequest(req);
     if (owner) adoptLang(owner, req.headers.get("accept-language"));
